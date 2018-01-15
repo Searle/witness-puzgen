@@ -5,19 +5,19 @@ const colors= [
     '#008000', '#800080', '#008080', '#000080'
 ];
 
-var show_walls= function( walls, w, h ) {
+const show_walls= function( walls, w, h ) {
     const per_line= (w + 2) * 2;
     const v= (value) => value < 0 ? value : ' ' + value;
-    let s= '';
+    let html= '';
 
     for ( let y= 0; y < h + 4; y++ ) {
         for ( let x= 0; x < w + 2; x++ ) {
             const i= y * per_line + x * 2;
-            s += v(walls[i]) + ' ' + v(walls[i + 1]) + '|';
+            html += v(walls[i]) + ' ' + v(walls[i + 1]) + '|';
         }
-        s += y * per_line + '<br>';
+        html += y * per_line + '<br>';
     }
-    s += '<hr>';
+    html += '<hr>';
     for ( let y= 0; y < h + 1; y++ ) {
         let v= '';
         let h= '';
@@ -26,13 +26,14 @@ var show_walls= function( walls, w, h ) {
             v += walls[i + 1] == 1 ? ' -- ' : '    ';
             h += walls[i] == 1 ? '|   ' : '    ';
         }
-        s += v + '<br>' + h + '<br>';
+        html += v + '<br>' + h + '<br>';
     }
-    document.getElementById('walls').innerHTML= '<pre>' + s + '</pre>';
+    html= '<pre>' + html + '</pre>';
+    document.getElementById('walls').innerHTML= html;
 }
 
 
-var gen_cells= function( w, h ) {
+const gen_cells= function( w, h ) {
     const walls= [];
 
     const per_line= (w + 2) * 2;
@@ -203,22 +204,22 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
             return 0;
         };
 
-        const mark= function( x, y ) {
+        const mark= function( x, y, color ) {
             cells[y + 1][x + 1]= color;
             cellList.push([ x, y ]);
         };
 
-        const fillList= [ [ 0, 0 ] ];
+        const fillList= [ [ 0, 0, color ] ];
 
         let guard= 1000;
         while ( --guard && fillList.length ) {
             let x= fillList[0][0];
             let y= fillList[0][1];
+            let color= fillList[0][2];
             fillList.shift();
             if ( cells[y + 1][x + 1] !== 0 ) continue;
 
-            color++;
-            mark(x, y);
+            mark(x, y, color);
             while ( --guard && cellList.length ) {
                 let x= cellList[0][0];
                 let y= cellList[0][1];
@@ -227,10 +228,10 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
                     const y1= y + DIRS[i][1];
                     if ( cells[y1 + 1][x1 + 1] == 0 ) {
                         if ( cw(x, y, i) == 0 ) {
-                            mark(x1, y1);
+                            mark(x1, y1, color);
                         }
                         else {
-                            fillList.push([ x1, y1 ]);
+                            fillList.push([ x1, y1, color + 1 ]);
                         }
                     }
                 }
@@ -249,7 +250,7 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
 //    _change_wall(25, 1);
 //    _change_wall(23, 1);
 
-    for ( let i= 0; i < 50; i++ ) {
+    for ( let i= 0; i < w * h * 2; i++ ) {
         change_wall();
     }
 
@@ -261,8 +262,30 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
 };
 
 
-var Panel= function( w, h ) {
+const show_cells= function( cells, w, h, bw ) {
+    let table= "";
+    for ( let y= 0; y < h; y++ ) {
+        let row= '';
+        for ( let x= 0; x < w; x++ ) {
+            if ( bw ) {
+                const color= cells[y + 1][x + 1] & 1 ? '#FFF' : '#000';
+                row += '<span class="circle" style="background-color: ' + color + '; border: 3px solid ' + (colors[cells[y + 1][x + 1] % colors.length]) + '"></span>';
+            }
+            else {
+                row += '<span class="circle" style="background-color: ' + (colors[cells[y + 1][x + 1] % colors.length]) + '"></span>';
+            }
+        }
+        table += '<div>' + row + '</div>';
+    }
+    const html= '<div class="panel' + (bw ? ' bw' : '') + '">' + table + '</div>';
+    document.getElementById('cells').innerHTML= html;
+};
+
+
+const Panel= function( w, h ) {
     var cells= gen_cells(w, h);
+
+    show_cells(cells, w, h, true);
 
 };
 

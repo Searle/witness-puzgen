@@ -1,9 +1,25 @@
 <style>
-div {
+.module {
     padding: 1rem;
     border: 5px solid #888;
     margin: 1rem:
 }
+.panel {
+    border: 10px solid orange;
+    display: inline-block;
+    border-radius: 20px;
+}
+.panel.bw {
+    background-color: #f5d8a3;
+}
+.circle {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    margin: 5px;
+}
 </style>
-<div id="walls"></div>
+<div id="walls" class="module"></div>
+<div id="cells" class="module"></div>
 <script src="main.js"></script>
