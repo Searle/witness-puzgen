@@ -1,46 +1,9 @@
 (function() {
 
-var OLD_gen_way= function( w, h, colors ) {
-    let cells= [];
-    let cellList= [];
-
-    for ( let y= -1; y <= h; y++ ) {
-        cells[y + 1]= [];
-        for ( let x= -1; x <= w; x++ ) {
-            var value= 0;
-            if ( x == -1 || x == w || y == -1 || y == h ) {
-                value= -1;
-            }
-            else {
-                cellList.push([ x + 1, y + 1 ]);
-            }
-            cells[y + 1].push(value);
-        }
-    }
-
-    for ( let i= 1; i < cellList.length; i++ ) {
-        let r= Math.floor(Math.random() * i);
-        let x= cellList[r][0];
-        let y= cellList[r][1];
-        cellList[r][0]= cellList[i][0];
-        cellList[r][1]= cellList[i][1];
-        cellList[i][0]= x;
-        cellList[i][1]= y;
-    }
-
-    for ( let i= 0; i < cellList.length; i++ ) {
-        let x= cellList[i][0];
-        let y= cellList[i][1];
-        
-//        let color= cells[
-    }
-
-console.log(cells);
-
-    console.log(cellList);
-    
-};
-
+const colors= [
+    '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#00FFFF', '#FF00FF', '#800000', '#808000',
+    '#008000', '#800080', '#008080', '#000080'
+];
 
 var show_walls= function( walls, w, h ) {
     const per_line= (w + 2) * 2;
@@ -69,8 +32,8 @@ var show_walls= function( walls, w, h ) {
 }
 
 
-var gen_way= function( w, h, colors ) {
-    let walls= [];
+var gen_cells= function( w, h ) {
+    const walls= [];
 
     const per_line= (w + 2) * 2;
     for ( let i= 0; i < per_line * (h + 4); i++ ) {
@@ -96,7 +59,7 @@ var gen_way= function( w, h, colors ) {
 
     const _change_wall= function( inx, dir ) {
 
-        var ofsF, ofsS1, ofsS2;
+        let ofsF, ofsS1, ofsS2;
         if ( inx & 1 ) {
             if ( dir == 0 ) {           // UP
                 ofsF= -per_line;
@@ -216,6 +179,71 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
         }
     };
 
+    const fill_wall= function( x, y ) {
+
+        const cells= [];
+        const cellList= [];
+        let color= 5;
+
+        const DIRS= [ [ 0, -1 ], [ 1, 0 ], [ 0, 1 ], [ -1, 0 ] ];
+
+        for ( let y= 0; y < h + 2; y++ ) {
+            cells[y]= [];
+            for ( let x= 0; x < w + 2; x++ ) {
+                cells[y][x]= (x == 0 || x == w + 1 || y == 0 || y == h + 1) ? -1 : 0;
+            }
+        }
+
+        const cw= function( x, y, dir ) {
+            const inx= (y + 2) * per_line + x * 2;
+            if ( dir == 0 ) return walls[inx + 1];              // UP;
+            if ( dir == 1 ) return walls[inx + 2];              // RIGHT;
+            if ( dir == 2 ) return walls[inx + per_line + 1];   // DOWN;
+            if ( dir == 3 ) return walls[inx];                  // LEFT;
+            return 0;
+        };
+
+        const mark= function( x, y ) {
+            cells[y + 1][x + 1]= color;
+            cellList.push([ x, y ]);
+        };
+
+        const fillList= [ [ 0, 0 ] ];
+
+        let guard= 1000;
+        while ( --guard && fillList.length ) {
+            let x= fillList[0][0];
+            let y= fillList[0][1];
+            fillList.shift();
+            if ( cells[y + 1][x + 1] !== 0 ) continue;
+
+            color++;
+            mark(x, y);
+            while ( --guard && cellList.length ) {
+                let x= cellList[0][0];
+                let y= cellList[0][1];
+                for ( let i= 0; i < 4; i++ ) {
+                    const x1= x + DIRS[i][0];
+                    const y1= y + DIRS[i][1];
+                    if ( cells[y1 + 1][x1 + 1] == 0 ) {
+                        if ( cw(x, y, i) == 0 ) {
+                            mark(x1, y1);
+                        }
+                        else {
+                            fillList.push([ x1, y1 ]);
+                        }
+                    }
+                }
+                cellList.shift();
+            }
+        }
+
+        console.table(cells);
+        console.table(cellList);
+
+        return cells;
+    };
+
 //    _change_wall(30, 1);
 //    _change_wall(21, 1);
 //    _change_wall(25, 1);
@@ -227,22 +255,14 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
 
     show_walls(walls, w, h);
 
-    console.log(walls);
+    const cells= fill_wall(0, 0);
 
-/*
-    for ( let i= 0; i < first0; i++ ) {
-        walls[i]= -1;
-        walls[i]= -1;
-
-    }
-*/
-
+    return cells;
 };
 
 
 var Panel= function( w, h ) {
-    var way= gen_way(w, h, 2);
-
+    var cells= gen_cells(w, h);
 
 };
 
