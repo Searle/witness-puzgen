@@ -180,7 +180,7 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
         }
     };
 
-    const fill_wall= function( x, y ) {
+    const fill_wall= function() {
 
         const cells= [];
         const cellList= [];
@@ -245,6 +245,68 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
         return cells;
     };
 
+    const optimise_cells1= function( cells ) {
+
+        const DIRS= [ [ 0, -1 ], [ 1, 0 ], [ 0, 1 ], [ -1, 0 ] ];
+        let remove= [];
+
+        for ( let y= 0; y < h; y++ ) {
+            for ( let x= 0; x < w; x++ ) {
+                let color= cells[y + 1][x + 1];
+                let found= true;
+                for ( let i= 0; i < 4; i++ ) {
+                    const x0= x + 1 + DIRS[i][0];
+                    const y0= y + 1 + DIRS[i][1];
+                    if ( cells[y0][x0] > 0 && cells[y0][x0] != color ) {
+                        found= false;
+                        break;
+                    }
+                }
+                if ( found ) remove.push([ x + 1, y + 1 ]);
+            }
+        }
+
+        for ( let i= 0; i < remove.length; i++ ) {
+            const x= remove[i][0];
+            const y= remove[i][1];
+            cells[y][x]= -cells[y][x];
+        }
+    };
+
+    const optimise_cells2= function( cells ) {
+
+// return;
+
+        const POS= [
+            [ 0, 0 ],
+            [ 1, 0 ],
+            [ 1, 1 ],
+            [ 0, 1 ],
+        ];
+
+        for ( let y= 0; y < h; y++ ) {
+            for ( let x= 0; x < w; x++ ) {
+                for ( let i= 0; i < 4; i++ ) {
+                    const x0= x + 1 + POS[i][0];
+                    const y0= y + 1 + POS[i][1];
+                    const n1x= x + 1 + POS[(i + 1) & 3][0];
+                    const n1y= y + 1 + POS[(i + 1) & 3][1];
+                    const n2x= x + 1 + POS[(i + 2) & 3][0];
+                    const n2y= y + 1 + POS[(i + 2) & 3][1];
+                    const n3x= x + 1 + POS[(i + 3) & 3][0];
+                    const n3y= y + 1 + POS[(i + 3) & 3][1];
+                    if ( cells[y0][x0] > 0
+                        && cells[y0][x0] == cells[n1y][n1x]
+                        && cells[y0][x0] == cells[n3y][n3x]
+                        && cells[n2y][n2x] > 0
+                    ) {
+                        cells[y0][x0]= -cells[y0][x0];
+                    }
+                }
+            }
+        }
+    };
+
 //    _change_wall(30, 1);
 //    _change_wall(21, 1);
 //    _change_wall(25, 1);
@@ -256,7 +318,12 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
 
     show_walls(walls, w, h);
 
-    const cells= fill_wall(0, 0);
+    let cells= fill_wall();
+
+    optimise_cells1(cells);
+    optimise_cells2(cells);
+
+
 
     return cells;
 };
@@ -267,13 +334,21 @@ const show_cells= function( cells, w, h, bw ) {
     for ( let y= 0; y < h; y++ ) {
         let row= '';
         for ( let x= 0; x < w; x++ ) {
+            let style= '';
+            let value= cells[y + 1][x + 1];
+            if ( value < 0) {
+                value= -value;
+                style= 'opacity: .0; x-background-color: #FFF !important;';
+            }
             if ( bw ) {
-                const color= cells[y + 1][x + 1] & 1 ? '#FFF' : '#000';
-                row += '<span class="circle" style="background-color: ' + color + '; border: 3px solid ' + (colors[cells[y + 1][x + 1] % colors.length]) + '"></span>';
+                const color= value & 1 ? '#FFF' : '#000';
+                // style += 'background-color: ' + color + '; border: 3px solid ' + (colors[value % colors.length]) + ';';
+                style += 'background-color: ' + color + '; border: 3px solid transparent;';
             }
             else {
-                row += '<span class="circle" style="background-color: ' + (colors[cells[y + 1][x + 1] % colors.length]) + '"></span>';
+                style += 'background-color: ' + (colors[value % colors.length]) + ';';
             }
+            row += '<span class="circle" style="' + style + '"></span>';
         }
         table += '<div>' + row + '</div>';
     }
