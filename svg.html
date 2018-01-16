@@ -10,13 +10,15 @@
 
 <style>
     #drawing > svg {
-        width: 300px;
-        height: 300px;
+        margin: 0;
+        width: 500px;
+        height: 500px;
     }
 </style>
 
 <script src="svg.js"></script>
 <script>
+'use strict';
 
 let cells= [
     
@@ -25,82 +27,319 @@ let cells= [
 
 const Panel= function() {
 
-    let width= 5;
-    let height= 5;
+    let svg;
+    let mouseX= -100;
+    let mouseY= -100;
 
-    let lineColor= '#F00';
-    let lineWidth= 4;
-    let gapWidth= 6;
+    const width= 5;
+    const height= 5;
+    const gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
+    const inCX= 0;
+    const inCY= height - 1;
+    const outCX= width - 1;
+    const outCY= 0;
+    const way= [ [ inCX, inCY ], [ 0, 2 ], [ 3, 2 ], [ 3, 0 ], [ outCX, outCY ] ];
 
-    let eX= [];
-    let eY= [];
+    const lineColor= '#F00';
+    const border= 10;
+    const lineWidth= 4;
+    const gapWidth= 6;
 
-    for ( let x= 0; x < width; x++ )  eX[x]= (100 - lineWidth) * x / (width - 1) + lineWidth / 2;
-    for ( let y= 0; y < height; y++ ) eY[y]= (100 - lineWidth) * y / (height - 1) +  lineWidth / 2;
+    const nodeX= [];
+    const nodeY= [];
+    for ( let x= 0; x < width;  x++ ) nodeX[x]= (100 - lineWidth - border * 2) * x / (width - 1)  + lineWidth / 2 + border;
+    for ( let y= 0; y < height; y++ ) nodeY[y]= (100 - lineWidth - border * 2) * y / (height - 1) + lineWidth / 2 + border;
 
-    let gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
+    const inX= nodeX[inCX];
+    const inY= nodeY[inCY];
+    const outX= nodeX[outCX];
+    const outY= nodeY[outCY];
+    let outX1= nodeX[outCX];
+    let outY1= nodeY[outCY];
 
-    let way= [ [ 0, 4 ], [ 0, 2 ], [ 3, 2 ], [ 3, 0 ], [ 4, 0 ] ];
+    if ( outCX == 0 ) outX1 -= lineWidth;
+    if ( outCX == width - 1 ) outX1 += lineWidth;
+    if ( outCY == 0 ) outY1 -= lineWidth;
+    if ( outCY == height - 1 ) outY1 += lineWidth;
 
-    this.draw= function( svg ) {
+    const _dist= (x0, y0, x1, y1) => Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+
+/*
+    const _pointDist= (xa, ya, xb, yb, x, y ) => {
+        const dxab= xb - xa;
+        const dyab= yb - ya;
+        const d= dyab * (x - xa) - dxab * (y - ya);
+        return Math.sqrt(d * d / (dxab * dxab + dyab * dyab));
+    };
+*/
+    const _pointProj= (x1, y1, x2, y2, x, y) => {
+        const dx= x2 - x1;
+        const dy= y2 - y1;
+        const t= (dx * (x - x1) + dy * (y - y1)) / (dx * dx + dy * dy);
+        const px = dx * t + x1;
+        const py = dy * t + y1;
+        return _dist(x1, y1, px, py) / _dist(x1, y1, x2, y2);
+    };
+
+    const _setMousePos= function( event ) {
+        const node= svg.node;
+        const rect= node.getBoundingClientRect();
+
+// console.log(rect);
+
+        mouseX= 100 * (event.clientX - rect.x) / rect.width;
+        mouseY= 100 * (event.clientY - rect.y) / rect.height;
+    };
+
+    const _drawWay= function( way ) {
+        let pointsStr= '';
+        let pathLength= 0;
+        let lastX;
+        let lastY;
+        for ( var i= 0; i < way.length; i++ ) {
+            let x= nodeX[way[i][0]];
+            let y= nodeY[way[i][1]];
+            pointsStr += ',' + x + ',' + y;
+            if ( i ) pathLength += _dist(lastX, lastY, x, y);
+            lastX= x;
+            lastY= y;
+        }
+
+        if ( lastTrackNext ) {
+//            if ( lastTrackNext.percent < 1 ) {
+                const tX= lastTrackNext.x;
+                const tY= lastTrackNext.y;
+                const p= lastTrackNext.percent;
+                const pX= lastX * (1 - p) + tX * ( p);
+                const pY= lastY * (1 - p) + tY * ( p);
+                pointsStr += ',' + pX + ',' + pY;
+                pathLength += _dist(lastX, lastY, pX, pY);
+// console.log(pX, pY);
+//            }
+        }
+
+//        pointsStr += ',' + outX1 + ',' + outY1;
+//        pathLength += _dist(outX, outY, outX1, outY1);
+
+        wayPath.attr('stroke-dashoffset', 10000 - pathLength);
+        wayPath.plot('M' + pointsStr.substr(1));
+    };
+
+    let trackMouse= false;
+    const track= [];
+    const trackNext= [];
+    const trackCells= [];
+    let lastTrackNext;
+    let trackCX;
+    let trackCY;
+
+    const _addTrackNext= function( cx, cy ) {
+        trackNext.push({ cx: cx, cy: cy, x: nodeX[cx], y: nodeY[cy], dist: 0, dist2: 0 });
+    };
+
+    const _updateTrackNext= function() {
+        lastTrackNext= undefined;
+        trackNext.length= 0;
+        if ( trackCX > 0          ) _addTrackNext(trackCX - 1, trackCY);
+        if ( trackCX < width - 1  ) _addTrackNext(trackCX + 1, trackCY);
+        if ( trackCY > 0          ) _addTrackNext(trackCX, trackCY - 1);
+        if ( trackCY < height - 1 ) _addTrackNext(trackCX, trackCY + 1);
+    };
+
+    const _drawTrack= function() {
+        _drawWay(track);
+    };
+
+    const _addToTrack= function( x, y ) {
+        trackCX= x;
+        trackCY= y;
+        track.push([ trackCX, trackCY ]);
+        trackCells[trackCY * width + trackCX]= track.length;
+
+_drawTrack();
+console.table(track);
+
+        _updateTrackNext();
+    };
+
+    const _resetTrack= function() {
+        track.length= 0;
+        trackCells.length= 0;
+        _addToTrack(inCX, inCY);
+    };
+
+    const _updateTrack= function() {
+        if ( !trackNext.length ) return;
+
+        trackNext.map(next => {
+            next.dist= _dist(next.x, next.y, mouseX, mouseY);
+            next.percent= _pointProj(nodeX[trackCX], nodeY[trackCY], next.x, next.y, mouseX, mouseY);
+        });
+        trackNext.sort((next1, next2) => next1.dist - next2.dist);
+
+// if ( lastTrackNext) console.log(lastTrackNext.cx, lastTrackNext.cy, lastTrackNext.percent);
+
+        if ( lastTrackNext ) {
+            if ( trackNext[0].cx != lastTrackNext.cx || trackNext[0].cy != lastTrackNext.cy ) {
+                if ( lastTrackNext.percent > .2 ) return;
+            }
+        }
+
+        if ( trackNext[0].dist > _dist(trackNext[0].x, trackNext[0].y, nodeX[trackCX], nodeY[trackCY]) ) {
+            lastTrackNext= undefined;
+            return;
+        }
+
+        lastTrackNext= trackNext[0];
+        const cell= trackCells[lastTrackNext.cy * width + lastTrackNext.cx];
+
+        if ( cell ) {
+console.log(cell, track.length);
+            if ( cell == track.length - 1 ) {
+                trackCells[trackCY * width + trackCX]= 0;
+                track.pop();
+                trackCX= track[track.length - 1][0];
+                trackCY= track[track.length - 1][1];
+                _updateTrackNext();
+                _updateTrack();
+                return;
+            }
+            if ( lastTrackNext.percent > .6 ) lastTrackNext.percent= .6;
+            return;
+        }
+
+        // if ( tracklastTrackNext.cx == 
+
+// console.log(lastTrackNext.dist, _dist(lastTrackNext.x, lastTrackNext.y, nodeX[trackCX], nodeY[trackCY]) );
+
+        if ( lastTrackNext.percent > 1 ) {
+            _addToTrack(lastTrackNext.cx, lastTrackNext.cy);
+            _updateTrack();
+        }
+        // console.table(trackNext[0]);
+    };
+
+    const setSvg= function( svg_ ) {
+        svg= svg_;
+
+        svg.on('mousedown', function( event ) {
+            _setMousePos(event);
+
+            trackMouse= false;
+
+            const d= _dist(inX, inY, mouseX, mouseY);
+            if ( d < lineWidth * 1.4 ) {
+                trackMouse= true;
+                _resetTrack();
+            }
+        });
+        svg.on('mouseup', function( event ) {
+            // trackMouse= false;
+        });
+        svg.on('mousemove', function( event ) {
+            _setMousePos(event);
+
+            if ( !trackMouse ) return;
+
+            _updateTrack();
+
+
+            _drawTrack();
+/*
+            const trackEX= nodeX[trackX];
+            const trackEY= nodeY[trackY];
+
+            const d= _dist(nodeX, nodeY, mouseX, mouseY);
+
+            console.log(d, lineWidth * 1.4, "MXY", mouseX, mouseY, "IN", inX, inY, "OUT", outX, outY);
+
+            // console.log("WIDTH", window.aa= svg.node);
+            // console.log(event, svg.node.offsetWidth);
+            // rect.draw(event, options);
+*/
+        });
+
+    };
+
+    const drawPanel= function() {
 
         svg.node.setAttribute('viewBox', '0 0 100 100');
         svg.size(100, 100);
         svg.rect(100, 100).attr({ fill: '#fF6' });
 
-        console.log(eX[0]);
-
-//        var polygon = svg.polygon([ eX[0], eY[0], eX[width - 1], eY[0], eX[width - 1], eY[height - 1], eX[0], eY[height - 1] ])
-//        polygon.fill('none').move(eX[0], eY[0])
+//        var polygon = svg.polygon([ nodeX[0], nodeY[0], nodeX[width - 1], nodeY[0], nodeX[width - 1], nodeY[height - 1], nodeX[0], nodeY[height - 1] ])
+//        polygon.fill('none').move(nodeX[0], nodeY[0])
 //        polygon.stroke({ color: lineColor, width: lineWidth, linecap: 'round', linejoin: 'round' })
 
-        svg.circle(lineWidth).center(eX[0], eY[0]).fill(lineColor);
-        svg.circle(lineWidth).center(eX[width - 1], eY[0]).fill(lineColor);
-        svg.circle(lineWidth).center(eX[width - 1], eY[height - 1]).fill(lineColor);
-        svg.circle(lineWidth).center(eX[0], eY[height - 1]).fill(lineColor);
+        svg.circle(lineWidth).center(nodeX[0], nodeY[0]).fill(lineColor);
+        svg.circle(lineWidth).center(nodeX[width - 1], nodeY[0]).fill(lineColor);
+        svg.circle(lineWidth).center(nodeX[width - 1], nodeY[height - 1]).fill(lineColor);
+        svg.circle(lineWidth).center(nodeX[0], nodeY[height - 1]).fill(lineColor);
+        svg.circle(lineWidth * 3).center(inX, inY).fill(lineColor);
+        svg.line(outX, outY, outX1, outY1).stroke({ color: lineColor, width: lineWidth, linecap: 'round' });
 
         for ( let x= 0; x < width; x++ ) {
-            svg.line(eX[x], eY[0], eX[x], eY[height - 1]).stroke({ color: lineColor, width: lineWidth });
+            svg.line(nodeX[x], nodeY[0], nodeX[x], nodeY[height - 1]).stroke({ color: lineColor, width: lineWidth });
         }
 
         for ( let y= 0; y < height; y++ ) {
-            let fromX= eX[0];
-            let toX= eX[width - 1];
+            let fromX= nodeX[0];
+            let toX= nodeX[width - 1];
             for ( let i= 0; i < gapsX[y].length; i++ ) {
-                toX= (eX[gapsX[y][i]] + eX[gapsX[y][i] + 1]) / 2 - gapWidth / 2;
-                svg.line(fromX, eY[y], toX, eY[y]).stroke({ color: lineColor, width: lineWidth });
+                toX= (nodeX[gapsX[y][i]] + nodeX[gapsX[y][i] + 1]) / 2 - gapWidth / 2;
+                svg.line(fromX, nodeY[y], toX, nodeY[y]).stroke({ color: lineColor, width: lineWidth });
                 fromX= toX + gapWidth;
-                toX= eX[width - 1];
+                toX= nodeX[width - 1];
             }
-            svg.line(fromX, eY[y], toX, eY[y]).stroke({ color: lineColor, width: lineWidth });
+            svg.line(fromX, nodeY[y], toX, nodeY[y]).stroke({ color: lineColor, width: lineWidth });
         }
+    };
+
+    let wayPath;
+
+    const drawWay= function() {
 
         let pointsStr= '';
         let pathLength= 0;
         let lastX;
         let lastY;
         for ( var i= 0; i < way.length; i++ ) {
-            let x= eX[way[i][0]];
-            let y= eY[way[i][1]];
+            let x= nodeX[way[i][0]];
+            let y= nodeY[way[i][1]];
             pointsStr += ',' + x + ',' + y;
-            if ( i ) pathLength += Math.sqrt((x - lastX) * (x - lastX) + (y - lastY) * (y - lastY));
+            if ( i ) pathLength += _dist(lastX, lastY, x, y);
             lastX= x;
             lastY= y;
         }
+        pointsStr += ',' + outX1 + ',' + outY1;
+        pathLength += _dist(outX, outY, outX1, outY1);
 
-console.log(pathLength);
+// console.log(pathLength);
 
-        var path = svg.path('M' + pointsStr.substr(1));
-        path.fill('none').move(eX[0], eY[0])
-        path.attr('stroke-dasharray', 1000);
-        path.attr('stroke-dashoffset', 1000);
+        if ( wayPath ) wayPath.remove();
+
+console.log(pointsStr);
+
+        var path= svg.path('M' + pointsStr.substr(1));
+        path.fill('none'); // .move(nodeX[0] < outX1 ? nodeX[0] : outX1, nodeY[0] < outY1 ? nodeY[0] : outY1);
+        path.attr('stroke-dasharray', 10000);
+        path.attr('stroke-dashoffset', 10000);
         path.stroke({ color: '#000', width: lineWidth, linecap: 'round', linejoin: 'round' })
-        path.animate().attr({ 'stroke-dashoffset': 1000 - pathLength });
+        path.animate().attr({ 'stroke-dashoffset': 10000 - pathLength });
+
+        wayPath= path;
     };
+
+    this.setSvg= setSvg;
+    this.drawPanel= drawPanel;
+    this.drawWay= drawWay;
 };
 
 const panel= new Panel();
-panel.draw(SVG('drawing'));
+panel.setSvg(SVG('drawing'));
+panel.drawPanel();
+panel.drawWay();
+
 
 /*
 var draw = SVG('drawing').size(300, 130)
