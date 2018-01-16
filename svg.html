@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SVG.js</title>
+</head>
+<body>
+  <div id="drawing"></div>
+</body>
+</html>
+
+<style>
+    #drawing > svg {
+        width: 300px;
+        height: 300px;
+    }
+</style>
+
+<script src="svg.js"></script>
+<script>
+
+let cells= [
+    
+];
+
+
+const Panel= function() {
+
+    let width= 5;
+    let height= 5;
+
+    let lineColor= '#F00';
+    let lineWidth= 4;
+    let gapWidth= 6;
+
+    let eX= [];
+    let eY= [];
+
+    for ( let x= 0; x < width; x++ )  eX[x]= (100 - lineWidth) * x / (width - 1) + lineWidth / 2;
+    for ( let y= 0; y < height; y++ ) eY[y]= (100 - lineWidth) * y / (height - 1) +  lineWidth / 2;
+
+    let gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
+
+    let way= [ [ 0, 4 ], [ 0, 2 ], [ 3, 2 ], [ 3, 0 ], [ 4, 0 ] ];
+
+    this.draw= function( svg ) {
+
+        svg.node.setAttribute('viewBox', '0 0 100 100');
+        svg.size(100, 100);
+        svg.rect(100, 100).attr({ fill: '#fF6' });
+
+        console.log(eX[0]);
+
+//        var polygon = svg.polygon([ eX[0], eY[0], eX[width - 1], eY[0], eX[width - 1], eY[height - 1], eX[0], eY[height - 1] ])
+//        polygon.fill('none').move(eX[0], eY[0])
+//        polygon.stroke({ color: lineColor, width: lineWidth, linecap: 'round', linejoin: 'round' })
+
+        svg.circle(lineWidth).center(eX[0], eY[0]).fill(lineColor);
+        svg.circle(lineWidth).center(eX[width - 1], eY[0]).fill(lineColor);
+        svg.circle(lineWidth).center(eX[width - 1], eY[height - 1]).fill(lineColor);
+        svg.circle(lineWidth).center(eX[0], eY[height - 1]).fill(lineColor);
+
+        for ( let x= 0; x < width; x++ ) {
+            svg.line(eX[x], eY[0], eX[x], eY[height - 1]).stroke({ color: lineColor, width: lineWidth });
+        }
+
+        for ( let y= 0; y < height; y++ ) {
+            let fromX= eX[0];
+            let toX= eX[width - 1];
+            for ( let i= 0; i < gapsX[y].length; i++ ) {
+                toX= (eX[gapsX[y][i]] + eX[gapsX[y][i] + 1]) / 2 - gapWidth / 2;
+                svg.line(fromX, eY[y], toX, eY[y]).stroke({ color: lineColor, width: lineWidth });
+                fromX= toX + gapWidth;
+                toX= eX[width - 1];
+            }
+            svg.line(fromX, eY[y], toX, eY[y]).stroke({ color: lineColor, width: lineWidth });
+        }
+
+        let pointsStr= '';
+        let pathLength= 0;
+        let lastX;
+        let lastY;
+        for ( var i= 0; i < way.length; i++ ) {
+            let x= eX[way[i][0]];
+            let y= eY[way[i][1]];
+            pointsStr += ',' + x + ',' + y;
+            if ( i ) pathLength += Math.sqrt((x - lastX) * (x - lastX) + (y - lastY) * (y - lastY));
+            lastX= x;
+            lastY= y;
+        }
+
+console.log(pathLength);
+
+        var path = svg.path('M' + pointsStr.substr(1));
+        path.fill('none').move(eX[0], eY[0])
+        path.attr('stroke-dasharray', 1000);
+        path.attr('stroke-dashoffset', 1000);
+        path.stroke({ color: '#000', width: lineWidth, linecap: 'round', linejoin: 'round' })
+        path.animate().attr({ 'stroke-dashoffset': 1000 - pathLength });
+    };
+};
+
+const panel= new Panel();
+panel.draw(SVG('drawing'));
+
+/*
+var draw = SVG('drawing').size(300, 130)
+var polyline = draw.polyline('50,0 60,40 100,50 60,60 50,100 40,60 0,50 40,40')
+polyline.fill('none').move(20, 20)
+polyline.stroke({ color: '#f06', width: 4, linecap: 'round', linejoin: 'round' })
+*/
+
+</script>
