@@ -77,6 +77,11 @@ const Panel= function() {
     if ( outCY == 0 ) outY1 -= lineWidth;
     if ( outCY == height - 1 ) outY1 += lineWidth;
 
+    const outCX1= width;
+    const outCY1= height;
+    nodeX[outCX1]= outX1;
+    nodeY[outCY1]= outY1;
+
     const _dist= (x0, y0, x1, y1) => Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
 
 /*
@@ -87,13 +92,13 @@ const Panel= function() {
         return Math.sqrt(d * d / (dxab * dxab + dyab * dyab));
     };
 */
-    const _pointProj= (x1, y1, x2, y2, x, y) => {
+    const _pointOnLineDist= (x1, y1, x2, y2, x, y) => {
         const dx= x2 - x1;
         const dy= y2 - y1;
         const t= (dx * (x - x1) + dy * (y - y1)) / (dx * dx + dy * dy);
         const px = dx * t + x1;
         const py = dy * t + y1;
-        return _dist(x1, y1, px, py) / _dist(x1, y1, x2, y2);
+        return _dist(x1, y1, px, py);
     };
 
     const _setMousePos= function( event ) {
@@ -156,10 +161,21 @@ const Panel= function() {
     const _updateTrackNext= function() {
         lastTrackNext= undefined;
         trackNext.length= 0;
+
+// console.log("UPDTN", trackCX, trackCY);
+
+        if ( trackCX == outCX1 && trackCY == outCY1 ) {
+            _addTrackNext(outCX, outCY);
+            return;
+        }
+
         if ( trackCX > 0          ) _addTrackNext(trackCX - 1, trackCY);
         if ( trackCX < width - 1  ) _addTrackNext(trackCX + 1, trackCY);
         if ( trackCY > 0          ) _addTrackNext(trackCX, trackCY - 1);
         if ( trackCY < height - 1 ) _addTrackNext(trackCX, trackCY + 1);
+        if ( trackCX == outCX && trackCY == outCY ) {
+            trackNext.push({ cx: outCX1, cy: outCY1, x: outX1, y: outY1, percent: 0, dist: 0 });
+        }
     };
 
     const _drawTrack= function() {
@@ -167,15 +183,25 @@ const Panel= function() {
     };
 
     const _addToTrack= function( x, y ) {
+
+// console.log("ADD", x, y);
+
         trackCX= x;
         trackCY= y;
         track.push([ trackCX, trackCY ]);
         trackCells[trackCY * width + trackCX]= track.length;
 
-_drawTrack();
+// _drawTrack();
 // console.table(track);
 
         _updateTrackNext();
+    };
+
+    const _removeFromTrack= function() {
+        trackCells[trackCY * width + trackCX]= 0;
+        track.pop();
+        trackCX= track[track.length - 1][0];
+        trackCY= track[track.length - 1][1];
     };
 
     const _resetTrack= function() {
@@ -204,50 +230,61 @@ _drawTrack();
 
     const __updateTrack= function() {
         if ( !trackNext.length ) return;
+
 // console.log("A");
 
         trackNext.map(next => {
-            next.percent= _pointProj(nodeX[trackCX], nodeY[trackCY], next.x, next.y, mouseX, mouseY);
-            next.dist= _dist(next.x, next.y, mouseX, mouseY);
+            const nextNodeDist= _dist(nodeX[trackCX], nodeY[trackCY], next.x, next.y);
+            next.percent= _pointOnLineDist(nodeX[trackCX], nodeY[trackCY], next.x, next.y, mouseX, mouseY) / nextNodeDist;
+            next.dist= _dist(next.x, next.y, mouseX, mouseY) / nextNodeDist;
         });
         trackNext.sort((next1, next2) => next1.dist - next2.dist);
 
 // if ( lastTrackNext) console.log(lastTrackNext.cx, lastTrackNext.cy, lastTrackNext.percent);
-// console.log("B");
+// console.log("B", trackNext[0].dist);
 
-        if ( trackNext[0].dist > _dist(trackNext[0].x, trackNext[0].y, nodeX[trackCX], nodeY[trackCY]) ) {
-            // lastTrackNext= undefined;
+
+        if ( trackNext[0].dist > 1 ) {
+
 // console.log("F");
 
             return;
         }
 
         const cell= trackCells[trackNext[0].cy * width + trackNext[0].cx];
+
 // console.log("E");
 
         if ( cell && lastTrackNext && (trackNext[0].cx == lastTrackNext.cx || trackNext[0].cy == lastTrackNext.cy) ) {
 
+// console.log(trackCX, trackCY, trackNext, cell, track.length - 1);
 // console.log(cell, track.length, trackCX, trackCY, trackNext[0], lastTrackNext);
+
             if ( cell == track.length - 1 ) {
-                trackCells[trackCY * width + trackCX]= 0;
-                track.pop();
-                trackCX= track[track.length - 1][0];
-                trackCY= track[track.length - 1][1];
+                _removeFromTrack();
                 _updateTrackNext();
+
+// console.log("NXY", trackCX, trackCY, trackNext);
+
                 _updateTrack();
                 return;
             }
         }
 
         if ( lastTrackNext ) {
+
 // console.log("C");
+
             if ( trackNext[0].cx != lastTrackNext.cx || trackNext[0].cy != lastTrackNext.cy ) {
-// console.log("D", lastTrackNextPercent, lastTrackNext.percent);
+
+// console.log("D", lastTrackNext.cx, lastTrackNext.cy, lastTrackNextPercent, lastTrackNext.percent);
+// console.table(trackNext);
+
                 if ( lastTrackNext.percent > .3 ) return;
             }
         }
 
-// console.log(trackNext[0]);
+// console.log("T=", trackNext[0], trackNext);
 
         lastTrackNext= trackNext[0];
 
@@ -256,7 +293,7 @@ _drawTrack();
             return;
         }
 
-// console.log(lastTrackNext.dist, _dist(lastTrackNext.x, lastTrackNext.y, nodeX[trackCX], nodeY[trackCY]) );
+// console.log("DIST", lastTrackNext.dist, _dist(lastTrackNext.x, lastTrackNext.y, nodeX[trackCX], nodeY[trackCY]) );
 
         if ( lastTrackNext.percent < 1 ) {
             lastTrackNextPercent= lastTrackNext.percent;
