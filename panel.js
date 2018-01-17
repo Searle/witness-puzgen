@@ -1,42 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>SVG.js</title>
-</head>
-<body>
-  <div id="drawing"></div>
-</body>
-</html>
-
-<style>
-html, body {
-    height: 100%;
-}
-body {
-    margin: 0;
-    padding: 0;
-    background-image: url("screenshot12-low.png");
-    background-size: cover;
-    background-position: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-#drawing > svg {
-    margin: 0;
-    width: 500px;
-    height: 500px;
-}
-</style>
-
-<script src="svg.js"></script>
-<script>
 'use strict';
-
-let cells= [
-    
-];
-
 
 const Panel= function() {
 
@@ -448,12 +410,9 @@ panel.setSvg(SVG('drawing'));
 panel.drawPanel();
 panel.drawWay();
 
-
 /*
 var draw = SVG('drawing').size(300, 130)
 var polyline = draw.polyline('50,0 60,40 100,50 60,60 50,100 40,60 0,50 40,40')
 polyline.fill('none').move(20, 20)
 polyline.stroke({ color: '#f06', width: 4, linecap: 'round', linejoin: 'round' })
 */
-
-</script>
