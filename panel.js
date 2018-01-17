@@ -11,6 +11,7 @@ const Panel= function() {
     const width= 5;
     const height= 5;
     const gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
+    const gapsY= [];    // TODO: Draw!
     const inCX= 0;
     const inCY= height - 1;
     const outCX= width - 1;
@@ -54,7 +55,7 @@ const Panel= function() {
         return Math.sqrt(d * d / (dxab * dxab + dyab * dyab));
     };
 */
-    const _pointOnLineDist= (x1, y1, x2, y2, x, y) => {
+    const _projectedPointOnLineDist= (x1, y1, x2, y2, x, y) => {
         const dx= x2 - x1;
         const dy= y2 - y1;
         const t= (dx * (x - x1) + dy * (y - y1)) / (dx * dx + dy * dy);
@@ -87,21 +88,15 @@ const Panel= function() {
             lastY= y;
         }
 
-        if ( lastTrackNext ) {
-//            if ( lastTrackNext.percent < 1 ) {
-                const tX= lastTrackNext.x;
-                const tY= lastTrackNext.y;
-                const p= lastTrackNextPercent;
-                const pX= lastX * (1 - p) + tX * ( p);
-                const pY= lastY * (1 - p) + tY * ( p);
-                pointsStr += ',' + pX + ',' + pY;
-                pathLength += _dist(lastX, lastY, pX, pY);
-// console.log(pX, pY);
-//            }
+        if ( currentTrackNext ) {
+            const tX= currentTrackNext.x;
+            const tY= currentTrackNext.y;
+            const p= currentTrackNextPercent;
+            const pX= lastX * (1 - p) + tX * ( p);
+            const pY= lastY * (1 - p) + tY * ( p);
+            pointsStr += ',' + pX + ',' + pY;
+            pathLength += _dist(lastX, lastY, pX, pY);
         }
-
-//        pointsStr += ',' + outX1 + ',' + outY1;
-//        pathLength += _dist(outX, outY, outX1, outY1);
 
         wayPath.attr('stroke-dashoffset', 10000 - pathLength);
         wayPath.plot('M' + pointsStr.substr(1));
@@ -111,17 +106,27 @@ const Panel= function() {
     const track= [];
     const trackNext= [];
     const trackCells= [];
-    let lastTrackNext;
-    let lastTrackNextPercent;
+    let currentTrackNext;
+    let currentTrackNextPercent;
     let trackCX;
     let trackCY;
 
-    const _addTrackNext= function( cx, cy ) {
-        trackNext.push({ cx: cx, cy: cy, x: nodeX[cx], y: nodeY[cy], percent: 0, dist: 0 });
+    const _addTrackNext= function( cx, cy, gaps, g ) {
+        let isGap= false;
+
+        if ( gaps ) {
+
+            // FIXME: Refactor to eliminate table scan
+            for ( let i= 0; i < gaps.length; i++ ) {
+                if ( gaps[i] == g ) { isGap = true; break; }
+            }
+        }
+
+        trackNext.push({ cx: cx, cy: cy, x: nodeX[cx], y: nodeY[cy], percent: 0, dist: 0, isGap: isGap });
     };
 
     const _updateTrackNext= function() {
-        lastTrackNext= undefined;
+        currentTrackNext= undefined;
         trackNext.length= 0;
 
 // console.log("UPDTN", trackCX, trackCY);
@@ -131,12 +136,12 @@ const Panel= function() {
             return;
         }
 
-        if ( trackCX > 0          ) _addTrackNext(trackCX - 1, trackCY);
-        if ( trackCX < width - 1  ) _addTrackNext(trackCX + 1, trackCY);
-        if ( trackCY > 0          ) _addTrackNext(trackCX, trackCY - 1);
-        if ( trackCY < height - 1 ) _addTrackNext(trackCX, trackCY + 1);
+        if ( trackCX > 0          ) _addTrackNext(trackCX - 1, trackCY, gapsX[trackCY], trackCX - 1);
+        if ( trackCX < width - 1  ) _addTrackNext(trackCX + 1, trackCY, gapsX[trackCY], trackCX);
+        if ( trackCY > 0          ) _addTrackNext(trackCX, trackCY - 1, gapsY[trackCX], trackCY - 1);
+        if ( trackCY < height - 1 ) _addTrackNext(trackCX, trackCY + 1, gapsY[trackCX], trackCY);
         if ( trackCX == outCX && trackCY == outCY ) {
-            trackNext.push({ cx: outCX1, cy: outCY1, x: outX1, y: outY1, percent: 0, dist: 0 });
+            trackNext.push({ cx: outCX1, cy: outCY1, x: outX1, y: outY1, percent: 0, dist: 0, isGap: false });
         }
     };
 
@@ -197,12 +202,12 @@ const Panel= function() {
 
         trackNext.map(next => {
             const nextNodeDist= _dist(nodeX[trackCX], nodeY[trackCY], next.x, next.y);
-            next.percent= _pointOnLineDist(nodeX[trackCX], nodeY[trackCY], next.x, next.y, mouseX, mouseY) / nextNodeDist;
+            next.percent= _projectedPointOnLineDist(nodeX[trackCX], nodeY[trackCY], next.x, next.y, mouseX, mouseY) / nextNodeDist;
             next.dist= _dist(next.x, next.y, mouseX, mouseY) / nextNodeDist;
         });
         trackNext.sort((next1, next2) => next1.dist - next2.dist);
 
-// if ( lastTrackNext) console.log(lastTrackNext.cx, lastTrackNext.cy, lastTrackNext.percent);
+// if ( currentTrackNext) console.log(currentTrackNext.cx, currentTrackNext.cy, currentTrackNext.percent);
 // console.log("B", trackNext[0].dist);
 
 
@@ -217,10 +222,10 @@ const Panel= function() {
 
 // console.log("E");
 
-        if ( cell && lastTrackNext && (trackNext[0].cx == lastTrackNext.cx || trackNext[0].cy == lastTrackNext.cy) ) {
+        if ( cell && currentTrackNext && (trackNext[0].cx == currentTrackNext.cx || trackNext[0].cy == currentTrackNext.cy) ) {
 
 // console.log(trackCX, trackCY, trackNext, cell, track.length - 1);
-// console.log(cell, track.length, trackCX, trackCY, trackNext[0], lastTrackNext);
+// console.log(cell, track.length, trackCX, trackCY, trackNext[0], currentTrackNext);
 
             if ( cell == track.length - 1 ) {
                 _removeFromTrack();
@@ -233,36 +238,42 @@ const Panel= function() {
             }
         }
 
-        if ( lastTrackNext ) {
+        if ( currentTrackNext ) {
 
 // console.log("C");
 
-            if ( trackNext[0].cx != lastTrackNext.cx || trackNext[0].cy != lastTrackNext.cy ) {
+            if ( trackNext[0].cx != currentTrackNext.cx || trackNext[0].cy != currentTrackNext.cy ) {
 
-// console.log("D", lastTrackNext.cx, lastTrackNext.cy, lastTrackNextPercent, lastTrackNext.percent);
+// console.log("D", currentTrackNext.cx, currentTrackNext.cy, currentTrackNextPercent, currentTrackNext.percent);
 // console.table(trackNext);
 
-                if ( lastTrackNext.percent > .3 ) return;
+                if ( currentTrackNext.percent > .3 ) return;
             }
         }
 
-// console.log("T=", trackNext[0], trackNext);
+console.log("T=", trackNext[0].percent, trackNext[0].dist);
 
-        lastTrackNext= trackNext[0];
+        currentTrackNext= trackNext[0];
 
         if ( cell ) {
-            lastTrackNextPercent= lastTrackNext.percent > .6 ? .6 : lastTrackNext.percent;
+            currentTrackNextPercent= currentTrackNext.percent > .6 ? .6 : currentTrackNext.percent;
             return;
         }
 
-// console.log("DIST", lastTrackNext.dist, _dist(lastTrackNext.x, lastTrackNext.y, nodeX[trackCX], nodeY[trackCY]) );
-
-        if ( lastTrackNext.percent < 1 ) {
-            lastTrackNextPercent= lastTrackNext.percent;
+        if ( currentTrackNext.isGap ) {
+            currentTrackNextPercent= currentTrackNext.percent > .3 ? .3 : currentTrackNext.percent;
             return;
         }
 
-        _addToTrack(lastTrackNext.cx, lastTrackNext.cy);
+
+// console.log("DIST", currentTrackNext.dist, _dist(currentTrackNext.x, currentTrackNext.y, nodeX[trackCX], nodeY[trackCY]) );
+
+        if ( currentTrackNext.percent < 1 ) {
+            currentTrackNextPercent= currentTrackNext.percent;
+            return;
+        }
+
+        _addToTrack(currentTrackNext.cx, currentTrackNext.cy);
         _updateTrack();  // Tail recursion
     };
 
@@ -274,7 +285,9 @@ const Panel= function() {
         if ( !trackMouse ) return;
 
         if ( mouseX_ != lastMouseX || mouseY_ != lastMouseY ) {
+
 // console.log((mouseX_ - lastMouseX) * FACT, (mouseY_ - lastMouseY) * FACT);
+
             mouseX= mouseX_ + (mouseX_ - lastMouseX) * FACT;
             mouseY= mouseY_ + (mouseY_ - lastMouseY) * FACT;
             lastMouseX= mouseX_;
@@ -388,7 +401,7 @@ const Panel= function() {
 
         if ( wayPath ) wayPath.remove();
 
-console.log(pointsStr);
+// console.log(pointsStr);
 
         var path= svg.path('M' + pointsStr.substr(1));
         path.fill('none'); // .move(nodeX[0] < outX1 ? nodeX[0] : outX1, nodeY[0] < outY1 ? nodeY[0] : outY1);
