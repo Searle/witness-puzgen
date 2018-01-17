@@ -30,6 +30,8 @@ const Panel= function() {
     let svg;
     let mouseX= -100;
     let mouseY= -100;
+    let mouseX_= -100;
+    let mouseY_= -100;
 
     const width= 5;
     const height= 5;
@@ -87,8 +89,8 @@ const Panel= function() {
 
 // console.log(rect);
 
-        mouseX= 100 * (event.clientX - rect.x) / rect.width;
-        mouseY= 100 * (event.clientY - rect.y) / rect.height;
+        mouseX_= mouseX= 100 * (event.clientX - rect.x) / rect.width;
+        mouseY_= mouseY= 100 * (event.clientY - rect.y) / rect.height;
     };
 
     const _drawWay= function( way ) {
@@ -109,7 +111,7 @@ const Panel= function() {
 //            if ( lastTrackNext.percent < 1 ) {
                 const tX= lastTrackNext.x;
                 const tY= lastTrackNext.y;
-                const p= lastTrackNext.percent;
+                const p= lastTrackNextPercent;
                 const pX= lastX * (1 - p) + tX * ( p);
                 const pY= lastY * (1 - p) + tY * ( p);
                 pointsStr += ',' + pX + ',' + pY;
@@ -130,11 +132,12 @@ const Panel= function() {
     const trackNext= [];
     const trackCells= [];
     let lastTrackNext;
+    let lastTrackNextPercent;
     let trackCX;
     let trackCY;
 
     const _addTrackNext= function( cx, cy ) {
-        trackNext.push({ cx: cx, cy: cy, x: nodeX[cx], y: nodeY[cy], dist: 0, dist2: 0 });
+        trackNext.push({ cx: cx, cy: cy, x: nodeX[cx], y: nodeY[cy], percent: 0, dist: 0 });
     };
 
     const _updateTrackNext= function() {
@@ -157,7 +160,7 @@ const Panel= function() {
         trackCells[trackCY * width + trackCX]= track.length;
 
 _drawTrack();
-console.table(track);
+// console.table(track);
 
         _updateTrackNext();
     };
@@ -168,33 +171,50 @@ console.table(track);
         _addToTrack(inCX, inCY);
     };
 
+    let rec= 0;
+    let recOne= 0;
     const _updateTrack= function() {
+        rec++;
+        if ( rec > 10 ) {
+            console.log("RECURSION");
+            debugger;
+            if ( recOne == 0 ) {
+                _recOne= 1;
+                __updateTrack();
+            }
+        }
+        else {
+            __updateTrack();
+        }
+        rec--;
+    }
+
+    const __updateTrack= function() {
         if ( !trackNext.length ) return;
+// console.log("A");
 
         trackNext.map(next => {
-            next.dist= _dist(next.x, next.y, mouseX, mouseY);
             next.percent= _pointProj(nodeX[trackCX], nodeY[trackCY], next.x, next.y, mouseX, mouseY);
+            next.dist= _dist(next.x, next.y, mouseX, mouseY);
         });
         trackNext.sort((next1, next2) => next1.dist - next2.dist);
 
 // if ( lastTrackNext) console.log(lastTrackNext.cx, lastTrackNext.cy, lastTrackNext.percent);
-
-        if ( lastTrackNext ) {
-            if ( trackNext[0].cx != lastTrackNext.cx || trackNext[0].cy != lastTrackNext.cy ) {
-                if ( lastTrackNext.percent > .2 ) return;
-            }
-        }
+// console.log("B");
 
         if ( trackNext[0].dist > _dist(trackNext[0].x, trackNext[0].y, nodeX[trackCX], nodeY[trackCY]) ) {
-            lastTrackNext= undefined;
+            // lastTrackNext= undefined;
+// console.log("F");
+
             return;
         }
 
-        lastTrackNext= trackNext[0];
-        const cell= trackCells[lastTrackNext.cy * width + lastTrackNext.cx];
+        const cell= trackCells[trackNext[0].cy * width + trackNext[0].cx];
+// console.log("E");
 
-        if ( cell ) {
-console.log(cell, track.length);
+        if ( cell && lastTrackNext && (trackNext[0].cx == lastTrackNext.cx || trackNext[0].cy == lastTrackNext.cy) ) {
+
+// console.log(cell, track.length, trackCX, trackCY, trackNext[0], lastTrackNext);
             if ( cell == track.length - 1 ) {
                 trackCells[trackCY * width + trackCX]= 0;
                 track.pop();
@@ -204,20 +224,54 @@ console.log(cell, track.length);
                 _updateTrack();
                 return;
             }
-            if ( lastTrackNext.percent > .6 ) lastTrackNext.percent= .6;
+        }
+
+        if ( lastTrackNext ) {
+// console.log("C");
+            if ( trackNext[0].cx != lastTrackNext.cx || trackNext[0].cy != lastTrackNext.cy ) {
+// console.log("D", lastTrackNextPercent, lastTrackNext.percent);
+                if ( lastTrackNext.percent > .3 ) return;
+            }
+        }
+
+// console.log(trackNext[0]);
+
+        lastTrackNext= trackNext[0];
+
+        if ( cell ) {
+            lastTrackNextPercent= lastTrackNext.percent > .6 ? .6 : lastTrackNext.percent;
             return;
         }
 
-        // if ( tracklastTrackNext.cx == 
-
 // console.log(lastTrackNext.dist, _dist(lastTrackNext.x, lastTrackNext.y, nodeX[trackCX], nodeY[trackCY]) );
 
-        if ( lastTrackNext.percent > 1 ) {
-            _addToTrack(lastTrackNext.cx, lastTrackNext.cy);
-            _updateTrack();
+        if ( lastTrackNext.percent < 1 ) {
+            lastTrackNextPercent= lastTrackNext.percent;
+            return;
         }
-        // console.table(trackNext[0]);
+
+        _addToTrack(lastTrackNext.cx, lastTrackNext.cy);
+        _updateTrack();  // Tail recursion
     };
+
+    let lastMouseX= 0;
+    let lastMouseY= 0;
+    const FACT= .2;
+
+    const _loop= function() {
+        if ( !trackMouse ) return;
+
+        if ( mouseX_ != lastMouseX || mouseY_ != lastMouseY ) {
+// console.log((mouseX_ - lastMouseX) * FACT, (mouseY_ - lastMouseY) * FACT);
+            mouseX= mouseX_ + (mouseX_ - lastMouseX) * FACT;
+            mouseY= mouseY_ + (mouseY_ - lastMouseY) * FACT;
+            lastMouseX= mouseX_;
+            lastMouseY= mouseY_;
+            _updateTrack();
+            _drawTrack();
+        }
+        window.requestAnimationFrame(_loop);
+    }
 
     const setSvg= function( svg_ ) {
         svg= svg_;
@@ -230,8 +284,13 @@ console.log(cell, track.length);
             const d= _dist(inX, inY, mouseX, mouseY);
             if ( d < lineWidth * 1.4 ) {
                 trackMouse= true;
-                _resetTrack();
             }
+
+            _resetTrack();
+            _updateTrack();
+            _drawTrack();
+
+            window.requestAnimationFrame(_loop);
         });
         svg.on('mouseup', function( event ) {
             // trackMouse= false;
@@ -239,12 +298,11 @@ console.log(cell, track.length);
         svg.on('mousemove', function( event ) {
             _setMousePos(event);
 
-            if ( !trackMouse ) return;
+//            if ( !trackMouse ) return;
 
-            _updateTrack();
+//            _updateTrack();
+//            _drawTrack();
 
-
-            _drawTrack();
 /*
             const trackEX= nodeX[trackX];
             const trackEY= nodeY[trackY];
