@@ -11,14 +11,26 @@ const Panel= function() {
     const width= 5;
     const height= 5;
     const gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
-    const gapsY= [];    // TODO: Draw!
+    const gapsY= [];    // @TODO: Draw!
     const inCX= 0;
     const inCY= height - 1;
     const outCX= width - 1;
     const outCY= 0;
     const way= [ [ inCX, inCY ], [ 0, 2 ], [ 3, 2 ], [ 3, 0 ], [ outCX, outCY ] ];
+    const cells= [ [ 0, 1, 1, 0 ], [ 0, 1, 2, 3 ], [ 1, 0 ,0, 0 ], [ 1, 2, 3, 0 ] ];
 
-    const lineColor= '#F00';
+    const colors= [
+        '#FFFFFF', // 0: weiss
+        '#000000', // 1: schwarz
+        '#9812e2', // 3: lila
+        '#1112de', // 4: blau
+        '#be1212', // 5: rot
+        '#d8df13', // 2: gelb
+    ];
+
+    const panelColor= '#ffc023';
+    const lineColor= '#634700';
+    const wayColor= '#FFFFFF';
     const border= 10;
     const lineWidth= 4;
     const gapWidth= 6;
@@ -116,7 +128,7 @@ const Panel= function() {
 
         if ( gaps ) {
 
-            // FIXME: Refactor to eliminate table scan
+            // @FIXME: Refactor to eliminate table scan
             for ( let i= 0; i < gaps.length; i++ ) {
                 if ( gaps[i] == g ) { isGap = true; break; }
             }
@@ -177,6 +189,8 @@ const Panel= function() {
         _addToTrack(inCX, inCY);
     };
 
+    // Debug-Code um versehentliche Rekursionen abzufangen.
+    // Kann entfernt werden und __updateTrack nach _updateTrack umbenannt werden
     let rec= 0;
     let recOne= 0;
     const _updateTrack= function() {
@@ -256,7 +270,9 @@ const Panel= function() {
         currentTrackNext= trackNext[0];
 
         if ( currentTrackNext.isGap ) {
-            currentTrackNextPercent= currentTrackNext.percent > .3 ? .3 : currentTrackNext.percent;
+
+            // @FIXME: .23 ist ein Hack. Der Korrekte Wert muss aus den absoluten Abstand minus gapWidth berechnet werden
+            currentTrackNextPercent= currentTrackNext.percent > .23 ? .23 : currentTrackNext.percent;
             return;
         }
 
@@ -321,24 +337,6 @@ const Panel= function() {
         });
         svg.on('mousemove', function( event ) {
             _setMousePos(event);
-
-//            if ( !trackMouse ) return;
-
-//            _updateTrack();
-//            _drawTrack();
-
-/*
-            const trackEX= nodeX[trackX];
-            const trackEY= nodeY[trackY];
-
-            const d= _dist(nodeX, nodeY, mouseX, mouseY);
-
-            console.log(d, lineWidth * 1.4, "MXY", mouseX, mouseY, "IN", inX, inY, "OUT", outX, outY);
-
-            // console.log("WIDTH", window.aa= svg.node);
-            // console.log(event, svg.node.offsetWidth);
-            // rect.draw(event, options);
-*/
         });
 
     };
@@ -347,12 +345,7 @@ const Panel= function() {
 
         svg.node.setAttribute('viewBox', '0 0 100 100');
         svg.size(100, 100);
-        svg.rect(100, 100).attr({ fill: '#fF6' });
-
-//        var polygon = svg.polygon([ nodeX[0], nodeY[0], nodeX[width - 1], nodeY[0], nodeX[width - 1], nodeY[height - 1], nodeX[0], nodeY[height - 1] ])
-//        polygon.fill('none').move(nodeX[0], nodeY[0])
-//        polygon.stroke({ color: lineColor, width: lineWidth, linecap: 'round', linejoin: 'round' })
-
+        svg.rect(100, 100).attr({ fill: panelColor });
         svg.circle(lineWidth).center(nodeX[0], nodeY[0]).fill(lineColor);
         svg.circle(lineWidth).center(nodeX[width - 1], nodeY[0]).fill(lineColor);
         svg.circle(lineWidth).center(nodeX[width - 1], nodeY[height - 1]).fill(lineColor);
@@ -360,6 +353,7 @@ const Panel= function() {
         svg.circle(lineWidth * 3).center(inX, inY).fill(lineColor);
         svg.line(outX, outY, outX1, outY1).stroke({ color: lineColor, width: lineWidth, linecap: 'round' });
 
+        // @TODO: gapsY
         for ( let x= 0; x < width; x++ ) {
             svg.line(nodeX[x], nodeY[0], nodeX[x], nodeY[height - 1]).stroke({ color: lineColor, width: lineWidth });
         }
@@ -374,6 +368,17 @@ const Panel= function() {
                 toX= nodeX[width - 1];
             }
             svg.line(fromX, nodeY[y], toX, nodeY[y]).stroke({ color: lineColor, width: lineWidth });
+
+            if ( y < height - 1 ) {
+                for ( let x= 0; x < width - 1; x++ ) {
+                    const color= cells[y][x];
+                    if ( color ) {
+                        svg.rect(lineWidth * 2, lineWidth * 2).radius(2)
+                            .center((nodeX[x] + nodeX[x + 1]) / 2, (nodeY[y] + nodeX[y + 1]) / 2)
+                            .fill(colors[color - 1]);
+                    }
+                }
+            }
         }
     };
 
@@ -402,12 +407,43 @@ const Panel= function() {
 
 // console.log(pointsStr);
 
-        var path= svg.path('M' + pointsStr.substr(1));
-        path.fill('none'); // .move(nodeX[0] < outX1 ? nodeX[0] : outX1, nodeY[0] < outY1 ? nodeY[0] : outY1);
-        path.attr('stroke-dasharray', 10000);
-        path.attr('stroke-dashoffset', 10000);
-        path.stroke({ color: '#000', width: lineWidth, linecap: 'round', linejoin: 'round' })
-        path.animate().attr({ 'stroke-dashoffset': 10000 - pathLength });
+        var path= svg.path('M' + pointsStr.substr(1))
+            .fill('none')
+            .attr('stroke-dasharray', 10000)
+            .attr('stroke-dashoffset', 10000)
+            .stroke({ color: wayColor, width: lineWidth, linecap: 'round', linejoin: 'round' });
+
+        path
+            .animate()
+            .attr({ 'stroke-dashoffset': 10000 - pathLength });
+        ;
+
+
+
+        // @WORKAROUND: .filter gibt nicht path zurueck
+        path.filter(function( add ) {
+
+            // Siehe: http://vanseodesign.com/web-design/svg-filter-element/
+            add.attr("filterUnits", "userSpaceOnUse").attr({ x: 0, y: 0, height: 100, width: 100 });
+
+            var blur = add.gaussianBlur(4)
+            add.blend(add.source, blur);
+
+/*
+            var flood= add.flood('#FFF', .5);
+            var blur = add.gaussianBlur(2);
+            add.blend(add.source, blur);
+
+<feFlood in="SourceGraphic" flood-color="green" flood-opacity="0.5" result="flood" x="0" y="0" width="150" height="100" />
+  </filter>
+ </defs>
+
+ <rect x="0" y="0" width="100" height="100" fill="#00f" filter="url(#flood)" />
+</svg>
+            var blur = add.gaussianBlur(2)
+            add.blend(add.source, blur);
+*/
+        })
 
         wayPath= path;
     };
