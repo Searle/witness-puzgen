@@ -251,20 +251,19 @@ const Panel= function() {
             }
         }
 
-console.log("T=", trackNext[0].percent, trackNext[0].dist);
+// console.log("T=", trackNext[0].percent, trackNext[0].dist);
 
         currentTrackNext= trackNext[0];
-
-        if ( cell ) {
-            currentTrackNextPercent= currentTrackNext.percent > .6 ? .6 : currentTrackNext.percent;
-            return;
-        }
 
         if ( currentTrackNext.isGap ) {
             currentTrackNextPercent= currentTrackNext.percent > .3 ? .3 : currentTrackNext.percent;
             return;
         }
 
+        if ( cell ) {
+            currentTrackNextPercent= currentTrackNext.percent > .6 ? .6 : currentTrackNext.percent;
+            return;
+        }
 
 // console.log("DIST", currentTrackNext.dist, _dist(currentTrackNext.x, currentTrackNext.y, nodeX[trackCX], nodeY[trackCY]) );
 
