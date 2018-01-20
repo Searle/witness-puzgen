@@ -301,7 +301,7 @@ const Panel= function() {
 
     let lastMouseX= 0;
     let lastMouseY= 0;
-    const FACT= .2;
+    const FACT= .4;
 
     const _loop= function() {
         if ( !trackMouse ) return;
@@ -320,14 +320,8 @@ const Panel= function() {
         window.requestAnimationFrame(_loop);
     }
 
-    let inMarkerOn= false;
-
     const _updateMarker= function() {
-        const on= _dist(mouseX_, mouseY_, inX, inY) < 30;
-        if ( on != inMarkerOn ) {
-            inMarker[on ? 'addClass' : 'removeClass']('on');
-            inMarkerOn= on;
-        }
+        svg.node.classList.toggle('show-in-marker', _dist(mouseX_, mouseY_, inX, inY) < 30);
     };
 
     const setSvg= function( svg_ ) {
@@ -337,7 +331,7 @@ const Panel= function() {
         svg= svg_;
         svgBoundingRect= svg.node.getBoundingClientRect();
 
-        svg.node.addEventListener('mousedown', function( event ) {
+        document.addEventListener('mousedown', function( event ) {
 
             _setMousePos(event);
 
@@ -347,6 +341,8 @@ const Panel= function() {
             if ( d < lineWidth * 1.4 ) {
                 trackMouse= true;
             }
+
+            svg.node.classList.toggle('show-way', trackMouse);
 
             _resetTrack();
             _updateTrack();
@@ -414,12 +410,11 @@ const Panel= function() {
         var blur = glowFilter.gaussianBlur(4)
         glowFilter.blend(glowFilter.source, blur);
 
-
-        wayStart= svg.circle(lineWidth * 3).center(inX, inY).fill(wayColor);
+        wayStart= svg.circle(lineWidth * 3).attr('class', 'way').center(inX, inY).fill(wayColor);
         wayStart.filter(glowFilter);  // Workaround: Filter nicht chainbar
 
         wayPath= svg.path('M 0,0').fill('none')
-            .attr('stroke-dasharray', 10000)
+            .attr({ 'class': 'way', 'stroke-dasharray': 10000 })
             .stroke({ color: wayColor, width: lineWidth, linecap: 'round', linejoin: 'round' })
         ;
         wayPath.filter(glowFilter);  // Workaround: Filter nicht chainbar
@@ -448,6 +443,8 @@ const Panel= function() {
         wayPath.plot('M' + pointsStr.substr(1))
             .attr('stroke-dashoffset', 10000)
             .animate().attr({ 'stroke-dashoffset': 10000 - pathLength });
+
+        svg.node.classList.add('show-way');
     };
 
     this.setSvg= setSvg;

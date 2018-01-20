@@ -1,24 +1,33 @@
+
 html, body {
     height: 100%;
 }
+
 body {
     margin: 0;
     padding: 0;
 }
+
+/* =========================================================
+/* Puzzle-Gen Develop
+/* ====================================================== */
 
 html.puzzle-gen .module {
     padding: 1rem;
     border: 5px solid #888;
     margin: 1rem:
 }
+
 html.puzzle-gen .panel {
     border: 10px solid orange;
     display: inline-block;
     border-radius: 20px;
 }
+
 html.puzzle-gen .panel.bw {
     background-color: #f5d8a3;
 }
+
 html.puzzle-gen .circle {
     display: inline-block;
     width: 40px;
@@ -26,6 +35,10 @@ html.puzzle-gen .circle {
     border-radius: 20px;
     margin: 5px;
 }
+
+/* =========================================================
+/*  Game
+/* ====================================================== */
 
 html.game body {
     background-image: url("screenshot12-low.png");
@@ -45,7 +58,7 @@ html.game .marker {
     display: none;
 }
 
-html.game .marker.on {
+html.game svg.show-in-marker .marker {
     display: initial;
     fill-opacity: 0;
     stroke: #FFFFFF;
@@ -55,6 +68,14 @@ html.game .marker.on {
     animation-direction: normal;
     animation-iteration-count: infinite;
     animation-duration: 2.5s;
+}
+
+html.game .way {
+    display: none;
+}
+
+html.game svg.show-way .way {
+    display: initial;
 }
 
 @keyframes marker {
