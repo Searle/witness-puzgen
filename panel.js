@@ -20,7 +20,6 @@ const Panel= function() {
 //    const gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
 //    const gapsY= [];    // @TODO: Draw!
 
-
     const puzzle= new Puzzle(width, height);
     const cells= puzzle.getCells();
     const gapsX= [];
@@ -39,7 +38,7 @@ const Panel= function() {
     const lineColor= '#634700';
     const wayColor= '#FFFFFF';
     const border= 10;
-    const lineWidth= 4;
+    const lineWidth= 32 / (width + height - 2);         // @FIXME: Radius der Steine
     const gapWidth= 6;
 
     const nodeX= [];
