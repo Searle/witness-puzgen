@@ -40,3 +40,40 @@ html.game #drawing > svg {
     width: 500px;
     height: 500px;
 }
+
+html.game .marker {
+    display: none;
+}
+
+html.game .marker.on {
+    display: initial;
+    fill-opacity: 0;
+    stroke: #FFFFFF;
+    stroke-width: .08;
+    transform-origin: 50% 50%;
+    animation-name: marker;
+    animation-direction: normal;
+    animation-iteration-count: infinite;
+    animation-duration: 2.5s;
+}
+
+@keyframes marker {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0;
+    }
+    5% {
+        opacity: .8;
+    }
+    20% {
+        opacity: .8;
+    }
+    40% {
+        transform: scale(10, 10);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(0, 0);
+        opacity: 0;
+    }
+}

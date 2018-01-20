@@ -3,6 +3,8 @@
 const Panel= function() {
 
     let svg;
+    let svgBoundingRect;
+
     let mouseX= -100;
     let mouseY= -100;
     let mouseX_= -100;
@@ -83,8 +85,7 @@ const Panel= function() {
     };
 
     const _setMousePos= function( event ) {
-        const node= svg.node;
-        const rect= node.getBoundingClientRect();
+        const rect= svgBoundingRect;
 
 // console.log(rect);
 
@@ -319,10 +320,25 @@ const Panel= function() {
         window.requestAnimationFrame(_loop);
     }
 
-    const setSvg= function( svg_ ) {
-        svg= svg_;
+    let inMarkerOn= false;
 
-        svg.on('mousedown', function( event ) {
+    const _updateMarker= function() {
+        const on= _dist(mouseX_, mouseY_, inX, inY) < 30;
+        if ( on != inMarkerOn ) {
+            inMarker[on ? 'addClass' : 'removeClass']('on');
+            inMarkerOn= on;
+        }
+    };
+
+    const setSvg= function( svg_ ) {
+
+        if ( svg ) console.log("ERROR: SVG remapping not implemented");
+
+        svg= svg_;
+        svgBoundingRect= svg.node.getBoundingClientRect();
+
+        svg.node.addEventListener('mousedown', function( event ) {
+
             _setMousePos(event);
 
             trackMouse= false;
@@ -338,14 +354,14 @@ const Panel= function() {
 
             window.requestAnimationFrame(_loop);
         });
-        svg.on('mouseup', function( event ) {
-            // trackMouse= false;
-        });
-        svg.on('mousemove', function( event ) {
-            _setMousePos(event);
-        });
 
+        document.addEventListener('mousemove', function( event ) {
+            _setMousePos(event);
+            _updateMarker();
+        });
     };
+
+    let inMarker;
 
     const drawPanel= function() {
 
@@ -388,6 +404,8 @@ const Panel= function() {
                 }
             }
         }
+
+        inMarker= svg.circle(2).center(inX, inY).attr({ 'class': 'marker' });
     };
 
     let wayPath;
