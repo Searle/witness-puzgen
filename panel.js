@@ -406,8 +406,26 @@ const Panel= function() {
         }
 
         inMarker= svg.circle(2).center(inX, inY).attr({ 'class': 'marker' });
+
+        var glowFilter = new SVG.Filter();
+
+        // Siehe: http://vanseodesign.com/web-design/svg-filter-element/
+        glowFilter.attr({ filterUnits: "userSpaceOnUse", x: 0, y: 0, height: 100, width: 100 });
+        var blur = glowFilter.gaussianBlur(4)
+        glowFilter.blend(glowFilter.source, blur);
+
+
+        wayStart= svg.circle(lineWidth * 3).center(inX, inY).fill(wayColor);
+        wayStart.filter(glowFilter);  // Workaround: Filter nicht chainbar
+
+        wayPath= svg.path('M 0,0').fill('none')
+            .attr('stroke-dasharray', 10000)
+            .stroke({ color: wayColor, width: lineWidth, linecap: 'round', linejoin: 'round' })
+        ;
+        wayPath.filter(glowFilter);  // Workaround: Filter nicht chainbar
     };
 
+    let wayStart;
     let wayPath;
 
     const drawWay= function() {
@@ -427,51 +445,9 @@ const Panel= function() {
         pointsStr += ',' + outX1 + ',' + outY1;
         pathLength += _dist(outX, outY, outX1, outY1);
 
-// console.log(pathLength);
-
-        if ( wayPath ) wayPath.remove();
-
-// console.log(pointsStr);
-
-        var path= svg.path('M' + pointsStr.substr(1))
-            .fill('none')
-            .attr('stroke-dasharray', 10000)
+        wayPath.plot('M' + pointsStr.substr(1))
             .attr('stroke-dashoffset', 10000)
-            .stroke({ color: wayColor, width: lineWidth, linecap: 'round', linejoin: 'round' });
-
-        path
-            .animate()
-            .attr({ 'stroke-dashoffset': 10000 - pathLength });
-        ;
-
-
-
-        // @WORKAROUND: .filter gibt nicht path zurueck
-        path.filter(function( add ) {
-
-            // Siehe: http://vanseodesign.com/web-design/svg-filter-element/
-            add.attr("filterUnits", "userSpaceOnUse").attr({ x: 0, y: 0, height: 100, width: 100 });
-
-            var blur = add.gaussianBlur(4)
-            add.blend(add.source, blur);
-
-/*
-            var flood= add.flood('#FFF', .5);
-            var blur = add.gaussianBlur(2);
-            add.blend(add.source, blur);
-
-<feFlood in="SourceGraphic" flood-color="green" flood-opacity="0.5" result="flood" x="0" y="0" width="150" height="100" />
-  </filter>
- </defs>
-
- <rect x="0" y="0" width="100" height="100" fill="#00f" filter="url(#flood)" />
-</svg>
-            var blur = add.gaussianBlur(2)
-            add.blend(add.source, blur);
-*/
-        })
-
-        wayPath= path;
+            .animate().attr({ 'stroke-dashoffset': 10000 - pathLength });
     };
 
     this.setSvg= setSvg;
@@ -483,10 +459,3 @@ const panel= new Panel();
 panel.setSvg(SVG('drawing'));
 panel.drawPanel();
 panel.drawWay();
-
-/*
-var draw = SVG('drawing').size(300, 130)
-var polyline = draw.polyline('50,0 60,40 100,50 60,60 50,100 40,60 0,50 40,40')
-polyline.fill('none').move(20, 20)
-polyline.stroke({ color: '#f06', width: 4, linecap: 'round', linejoin: 'round' })
-*/
