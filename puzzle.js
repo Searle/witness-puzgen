@@ -1,4 +1,6 @@
-(function() {
+(function( global ) {
+
+const DEBUG= global.DEBUG_PUZZLE;
 
 const colors= [
     '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#00FFFF', '#FF00FF', '#800000', '#808000',
@@ -169,7 +171,7 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
         return false;
     };
 
-    const change_wall= function() {
+    const modify_wall= function() {
         let guard= 1000;
         while ( --guard ) {
             const inx= Math.floor(Math.random() * walls.length);
@@ -313,17 +315,25 @@ console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofs
 //    _change_wall(23, 1);
 
     for ( let i= 0; i < w * h * 2; i++ ) {
-        change_wall();
+        modify_wall();
     }
 
-    show_walls(walls, w, h);
+    if ( DEBUG ) show_walls(walls, w, h);
 
     let cells= fill_wall();
 
     optimise_cells1(cells);
     optimise_cells2(cells);
 
-
+    // Post-Processing
+    // Umrandung wird nicht mehr benoetigt
+    for ( let y= 0; y < h; y++ ) {
+        for ( let x= 0; x < w; x++ ) {
+            cells[y][x]= cells[y + 1][x + 1] < 0 ? 0 : cells[y + 1][x + 1];
+        }
+        cells[y].length= w;
+    }
+    cells.length= h;
 
     return cells;
 };
@@ -335,7 +345,7 @@ const show_cells= function( cells, w, h, bw ) {
         let row= '';
         for ( let x= 0; x < w; x++ ) {
             let style= '';
-            let value= cells[y + 1][x + 1];
+            let value= cells[y][x];
             if ( value < 0) {
                 value= -value;
                 style= 'opacity: .0; x-background-color: #FFF !important;';
@@ -357,22 +367,19 @@ const show_cells= function( cells, w, h, bw ) {
 };
 
 
-const Panel= function( w, h ) {
-    var cells= gen_cells(w, h);
+const Puzzle= function( w, h ) {
+    var cells= gen_cells(w - 1, h - 1);
 
-    show_cells(cells, w, h, true);
+    if ( DEBUG ) show_cells(cells, w, h, true);
 
+    this.getCells= () => cells;
 };
 
 
 
-
-
-
-
 // new Panel(3, 2);
-new Panel(5, 5);
+// new Puzzle(5, 5);
 
+global.Puzzle= Puzzle;
 
-
-})();
+})( window, window.DEBUG_PUZZLE );

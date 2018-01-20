@@ -10,14 +10,21 @@ const Panel= function() {
 
     const width= 5;
     const height= 5;
-    const gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
-    const gapsY= [];    // @TODO: Draw!
     const inCX= 0;
     const inCY= height - 1;
     const outCX= width - 1;
     const outCY= 0;
     const way= [ [ inCX, inCY ], [ 0, 2 ], [ 3, 2 ], [ 3, 0 ], [ outCX, outCY ] ];
-    const cells= [ [ 0, 1, 1, 0 ], [ 0, 1, 2, 3 ], [ 1, 0 ,0, 0 ], [ 1, 2, 3, 0 ] ];
+
+//    const cells= [ [ 0, 1, 1, 0 ], [ 0, 1, 2, 3 ], [ 1, 0 ,0, 0 ], [ 1, 2, 3, 0 ] ];
+//    const gapsX= [ [ 0 ], [ 2, 3 ], [], [], [] ];
+//    const gapsY= [];    // @TODO: Draw!
+
+
+    const puzzle= new Puzzle(width, height);
+    const cells= puzzle.getCells();
+    const gapsX= [];
+    const gapsY= [];    // @TODO: Draw!
 
     const colors= [
         '#FFFFFF', // 0: weiss
@@ -361,11 +368,13 @@ const Panel= function() {
         for ( let y= 0; y < height; y++ ) {
             let fromX= nodeX[0];
             let toX= nodeX[width - 1];
-            for ( let i= 0; i < gapsX[y].length; i++ ) {
-                toX= (nodeX[gapsX[y][i]] + nodeX[gapsX[y][i] + 1]) / 2 - gapWidth / 2;
-                svg.line(fromX, nodeY[y], toX, nodeY[y]).stroke({ color: lineColor, width: lineWidth });
-                fromX= toX + gapWidth;
-                toX= nodeX[width - 1];
+            if ( gapsX[y] ) {
+                for ( let i= 0; i < gapsX[y].length; i++ ) {
+                    toX= (nodeX[gapsX[y][i]] + nodeX[gapsX[y][i] + 1]) / 2 - gapWidth / 2;
+                    svg.line(fromX, nodeY[y], toX, nodeY[y]).stroke({ color: lineColor, width: lineWidth });
+                    fromX= toX + gapWidth;
+                    toX= nodeX[width - 1];
+                }
             }
             svg.line(fromX, nodeY[y], toX, nodeY[y]).stroke({ color: lineColor, width: lineWidth });
 
