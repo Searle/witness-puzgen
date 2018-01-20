@@ -1,12 +1,8 @@
 <!DOCTYPE html>
-<html class="puzzle-gen">
+<html class="game">
 <link rel="stylesheet" href="common.css">
-<div id="walls" class="module"></div>
-<div id="cells" class="module"></div>
-<script>
-    window.DEBUG_PUZZLE= true;
-</script>
+<div id="drawing"></div>
+<script src="svg.js"></script>
+<script src="svg.filter.js"></script>
 <script src="puzzle.js"></script>
-<script>
-    new Puzzle(5, 5);
-</script>
+<script src="panel.js"></script>
