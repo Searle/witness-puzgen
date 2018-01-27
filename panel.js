@@ -129,6 +129,7 @@ const Panel= function() {
     let currentTrackNextPercent;
     let trackCX;
     let trackCY;
+    let atOut= false;
 
     const _addTrackNext= function( cx, cy, gaps, g ) {
         let isGap= false;
@@ -152,6 +153,7 @@ const Panel= function() {
 
         if ( trackCX == outCX1 && trackCY == outCY1 ) {
             _addTrackNext(outCX, outCY);
+            atOut= true;
             return;
         }
 
@@ -162,9 +164,11 @@ const Panel= function() {
         if ( trackCX == outCX && trackCY == outCY ) {
             trackNext.push({ cx: outCX1, cy: outCY1, x: outX1, y: outY1, percent: 0, dist: 0, isGap: false });
         }
+        atOut= false;
     };
 
     const _drawTrack= function() {
+        svg.node.classList.toggle('pulse', atOut);
         _drawWay(track);
     };
 
@@ -410,7 +414,7 @@ const Panel= function() {
         var blur = glowFilter.gaussianBlur(4)
         glowFilter.blend(glowFilter.source, blur);
 
-        wayStart= svg.circle(lineWidth * 3).attr('class', 'way').center(inX, inY).fill(wayColor);
+        wayStart= svg.circle(lineWidth * 3).attr('class', 'way start').center(inX, inY).fill(wayColor);
         wayStart.filter(glowFilter);  // Workaround: Filter nicht chainbar
 
         wayPath= svg.path('M 0,0').fill('none')

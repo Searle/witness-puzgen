@@ -70,6 +70,18 @@ html.game svg.show-in-marker .marker {
     animation-duration: 2.5s;
 }
 
+html.game svg.pulse .way {
+    animation-name: pulse-way;
+    animation-direction: alternate-reverse;
+    animation-iteration-count: infinite;
+    animation-duration: .3s;
+    animation-timing-function: ease-in-out;
+}
+
+html.game svg.pulse .way.start {
+    animation-name: pulse-way-start;
+}
+
 html.game .way {
     display: none;
 }
@@ -96,5 +108,25 @@ html.game svg.show-way .way {
     100% {
         transform: scale(0, 0);
         opacity: 0;
+    }
+}
+
+@keyframes pulse-way {
+    0% {
+        stroke: #FFF;
+    }
+    100% {
+        stroke: #CCC;
+    }
+}
+
+@keyframes pulse-way-start {
+    0% {
+        stroke: #FFF;
+        fill: #FFF;
+    }
+    100% {
+        stroke: #CCC;
+        fill: #CCC;
     }
 }
