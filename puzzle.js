@@ -64,7 +64,7 @@ const fill_walls= function( walls, w, h ) {
     const per_line= (w + 2) * 2;
     const cells= [];
     const cellList= [];
-    let color= 5;
+    let color= 1;
 
     const DIRS= [ [ 0, -1 ], [ 1, 0 ], [ 0, 1 ], [ -1, 0 ] ];
 
@@ -119,8 +119,8 @@ const fill_walls= function( walls, w, h ) {
         }
     }
 
-    console.table(cells);
-    console.table(cellList);
+// console.table(cells);
+// console.table(cellList);
 
     return cells;
 };
@@ -187,10 +187,8 @@ const gen_cells= function( w, h ) {
 
         if ( walls[inx + ofsF] ) return false;
 
-        const w= inx => "w[" + inx + "]=" + walls[inx];
-
-// console.log(inx, dir, inx + ofsF, inx + ofsS1, inx + ofsS2, inx + ofsF + ofsS1, inx + ofsF + ofsS2, inx + ofsFS1, inx + ofsFS2);
-console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofsS2), w(inx + ofsF + ofsS1), w(inx + ofsF + ofsS2), w(inx + ofsFS1), w(inx + ofsFS2));
+// const w= inx => "w[" + inx + "]=" + walls[inx];
+// console.log("inx=", inx, "dir=", dir, w(inx + ofsF), w(inx + ofsS1), w(inx + ofsS2), w(inx + ofsF + ofsS1), w(inx + ofsF + ofsS2), w(inx + ofsFS1), w(inx + ofsFS2));
 
 
         //  .      -
@@ -437,9 +435,7 @@ const way_to_walls= function( way, w, h ) {
         }
     }
 
-    show_walls(walls, w, h);
-    const cells= fill_walls(walls, w, h);
-    show_cells(cells, w + 1, h + 1, false);
+    return walls;
 };
 
 
@@ -464,7 +460,34 @@ const Puzzle= function( w, h ) {
     };
 
     this.checkWay= function( way ) {
-        way_to_walls(way, w - 1, h - 1);
+        const walls= way_to_walls(way, w - 1, h - 1);
+
+//        show_walls(walls, w - 1, h - 1);
+
+        const wayCells= fill_walls(walls, w - 1, h - 1);
+
+//        show_cells(cells, w, h, false);
+
+        const lookup= {};
+
+        for ( let y= 0; y < h; y++ ) {
+            for ( let x= 0; x < w; x++ ) {
+                const wayColor= wayCells[y + 1][x + 1];
+                if ( wayColor <= 0 ) continue;
+
+                const color= cells[y + 1][x + 1];
+                if ( color <= 0 ) continue;
+
+                if ( wayColor in lookup ) {
+                    if ( lookup[wayColor] != color ) return false;
+                }
+                else {
+                    lookup[wayColor]= color;
+                }
+            }
+        }
+
+        return true;
     };
 };
 
@@ -480,16 +503,24 @@ if ( DEBUG ) {
     const test0= function() {
         seed= 1;
         const puzzle= new Puzzle(6, 6);
-        puzzle.checkWay([ [ 0, 5 ], [ 0, 2 ], [ 3, 2 ], [ 3, 4 ], [ 5, 4 ], [ 5, 2 ], [ 4, 2 ], [ 4, 1 ], [ 3, 1 ], [ 3, 0 ], [ 5, 0 ] ]);
+        // const ok= puzzle.checkWay([ [ 0, 5 ], [ 0, 2 ], [ 3, 2 ], [ 3, 4 ], [ 5, 4 ], [ 5, 2 ], [ 4, 2 ], [ 4, 1 ], [ 3, 1 ], [ 3, 0 ], [ 5, 0 ] ]);
+        const ok= puzzle.checkWay([ [ 0, 5 ], [ 0, 2 ], [ 3, 2 ], [ 3, 5 ], [ 5, 5 ], [ 5, 2 ], [ 4, 2 ], [ 4, 1 ], [ 3, 1 ], [ 3, 0 ], [ 5, 0 ] ]);
+        console.log("OK", ok);
     };
 
     const test1= function() {
         const w= 5;
         const h= 5;
-        const cells= way_to_walls([ [ 0, 5 ], [ 0, 2 ], [ 3, 2 ], [ 3, 4 ], [ 5, 4 ], [ 5, 2 ], [ 4, 2 ], [ 4, 1 ], [ 3, 1 ], [ 3, 0 ], [ 5, 0 ] ], w, h);
+        const walls= way_to_walls([ [ 0, 5 ], [ 0, 2 ], [ 3, 2 ], [ 3, 4 ], [ 5, 4 ], [ 5, 2 ], [ 4, 2 ], [ 4, 1 ], [ 3, 1 ], [ 3, 0 ], [ 5, 0 ] ], w, h);
+
+        show_walls(walls, w, h);
+
+        const cells= fill_walls(walls, w, h);
+        const cellLists= cells_fill_walls(walls, w, h);
+        show_cells(cells, w + 1, h + 1, false);
     };
 
-    test1();
+    test0();
 }
 
 global.Puzzle= Puzzle;

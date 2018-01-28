@@ -172,6 +172,11 @@ const Panel= function() {
         _drawWay(track);
     };
 
+    const _checkSolution= function() {
+        const solved= puzzle.checkWay(track);
+        svg.node.classList.toggle('solved', solved);
+    };
+
     const _addToTrack= function( x, y ) {
 
 // console.log("ADD", x, y);
@@ -180,11 +185,8 @@ const Panel= function() {
         trackCY= y;
         track.push([ trackCX, trackCY ]);
         trackCells[trackCY * width + trackCX]= track.length;
-
-// _drawTrack();
-// console.table(track);
-
         _updateTrackNext();
+        _checkSolution();
     };
 
     const _removeFromTrack= function() {
@@ -192,6 +194,7 @@ const Panel= function() {
         track.pop();
         trackCX= track[track.length - 1][0];
         trackCY= track[track.length - 1][1];
+        _checkSolution();
     };
 
     const _resetTrack= function() {
@@ -427,6 +430,7 @@ const Panel= function() {
     let wayStart;
     let wayPath;
 
+/*
     const drawWay= function() {
 
         let pointsStr= '';
@@ -450,13 +454,16 @@ const Panel= function() {
 
         svg.node.classList.add('show-way');
     };
+*/
 
     this.setSvg= setSvg;
     this.drawPanel= drawPanel;
-    this.drawWay= drawWay;
+
+    // this.drawWay= drawWay;
 };
 
 const panel= new Panel();
 panel.setSvg(SVG('drawing'));
 panel.drawPanel();
-panel.drawWay();
+
+// panel.drawWay();

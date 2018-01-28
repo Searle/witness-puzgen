@@ -54,6 +54,8 @@ html.game #drawing > svg {
     height: 500px;
 }
 
+/* Marker */
+
 html.game .marker {
     display: none;
 }
@@ -70,6 +72,24 @@ html.game svg.show-in-marker .marker {
     animation-duration: 2.5s;
 }
 
+@keyframes marker {
+    0%   { transform: scale(0, 0);   opacity: 0; }
+    5%   {                           opacity: .8; }
+    20%  {                           opacity: .8; }
+    40%  { transform: scale(10, 10); opacity: 0; }
+    100% { transform: scale(0, 0);   opacity: 0; }
+}
+
+html.game .way {
+    display: none;
+}
+
+html.game svg.show-way .way {
+    display: initial;
+}
+
+/* Pulse */
+
 html.game svg.pulse .way {
     animation-name: pulse-way;
     animation-direction: alternate-reverse;
@@ -82,51 +102,43 @@ html.game svg.pulse .way.start {
     animation-name: pulse-way-start;
 }
 
-html.game .way {
-    display: none;
-}
-
-html.game svg.show-way .way {
-    display: initial;
-}
-
-@keyframes marker {
-    0% {
-        transform: scale(0, 0);
-        opacity: 0;
-    }
-    5% {
-        opacity: .8;
-    }
-    20% {
-        opacity: .8;
-    }
-    40% {
-        transform: scale(10, 10);
-        opacity: 0;
-    }
-    100% {
-        transform: scale(0, 0);
-        opacity: 0;
-    }
-}
-
 @keyframes pulse-way {
-    0% {
-        stroke: #FFF;
-    }
-    100% {
-        stroke: #CCC;
-    }
+    0%      { stroke: #FFF; }
+    100%    { stroke: #CCC; }
 }
 
 @keyframes pulse-way-start {
-    0% {
-        stroke: #FFF;
-        fill: #FFF;
-    }
-    100% {
-        stroke: #CCC;
-        fill: #CCC;
-    }
+    0%     { stroke: #FFF; fill: #FFF; }
+    100%   { stroke: #CCC; fill: #CCC; }
 }
+
+/* Solved */
+
+html.game svg.solved .way {
+    stroke: #8F8;
+}
+
+html.game svg.solved .way.start {
+    fill: #8F8;
+}
+
+html.game svg.solved.pulse .way {
+    animation-name: solved-pulse-way;
+}
+
+html.game svg.solved.pulse .way.start {
+    animation-name: solved-pulse-way-start;
+}
+
+@keyframes solved-pulse-way {
+    0%      { stroke: #FFF; }
+    100%    { stroke: #8F8; }
+}
+
+@keyframes solved-pulse-way-start {
+    0%     { stroke: #FFF; fill: #FFF; }
+    100%   { stroke: #8F8; fill: #8F8; }
+}
+
+
+
