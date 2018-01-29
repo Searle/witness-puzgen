@@ -10,8 +10,8 @@ const Panel= function() {
     let mouseX_= -100;
     let mouseY_= -100;
 
-    const width= 5;
-    const height= 5;
+    const width= 6;
+    const height= 6;
     const inCX= 0;
     const inCY= height - 1;
     const outCX= width - 1;
@@ -308,7 +308,7 @@ const Panel= function() {
 
     let lastMouseX= 0;
     let lastMouseY= 0;
-    const FACT= .4;
+    const FACT= .6;
 
     const _loop= function() {
         if ( !trackMouse ) return;
@@ -431,6 +431,8 @@ const Panel= function() {
     let wayPath;
 
 /*
+    // UNUSED
+
     const drawWay= function() {
 
         let pointsStr= '';
@@ -465,5 +467,3 @@ const Panel= function() {
 const panel= new Panel();
 panel.setSvg(SVG('drawing'));
 panel.drawPanel();
-
-// panel.drawWay();
