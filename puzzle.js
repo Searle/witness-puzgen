@@ -126,7 +126,7 @@ const fill_walls= function( walls, w, h ) {
 };
 
 
-const gen_cells= function( w, h ) {
+const gen_cells_and_gaps= function( w, h ) {
     const walls= [];
 
     const per_line= (w + 2) * 2;
@@ -134,11 +134,39 @@ const gen_cells= function( w, h ) {
         walls[i]= -1;
     }
 
-    // FIXME: Wird z.Zt mit einem Weg am Rand initialisiert, was nicht gut ist
+
+/*
+    Spalte  Nummer.Vertikal..Horizontal
+            0.V..H  1.V..H  2.V..H  2+1.V..H  2+2.V..H
+    Zeile
+    0-2       -  -    -  -    -  -      -  -      -  -      -  Ausserhalb-Marker (-1)
+    0 -       -  -    -  -    -  -      -  -      -  -      V  Vertikale Weg (0) / Wand (1)
+    0         V  H    V  H    V  H      V  -      -  -      H  Horizonaler Weg (0) / Wand (1)
+    1         V  H    V  H    V  H      V  -      -  -
+    2         V  H    V  H    V  H      V  -      -  -
+    2+1       -  H    -  H    -  H      -  -      -  -
+    2+2       -  -    -  -    -  -      -  -      -  -
+*/
+
+    let wall_length= 0;
+    const min_wall_length= Math.pow(w + h + 2, 1.37) - 3;  // Empirisch ermittelt
+
+    // Mit einem Weg am Rand initialisieren:
+    // for ( let y= 0; y < h + 1; y++ ) {
+    //     for ( let x= 0; x < w + 1; x++ ) {
+    //         if ( x < w ) walls[(y + 2) * per_line + x * 2 + 1]= y == 0 ? 1 : 0;
+    //         if ( y < h ) walls[(y + 2) * per_line + x * 2]= x == 0 ? 1 : 0;
+    //     }
+    // }
+
+    // Initialiseren mit folgenden Waenden:
+    // (0, h + 1) -> (0, h / 2) -> (w + 1, h / 2) -> (w + 1, 0)
+    const y2= (h / 2) | 0;
+
     for ( let y= 0; y < h + 1; y++ ) {
         for ( let x= 0; x < w + 1; x++ ) {
-            if ( x < w ) walls[(y + 2) * per_line + x * 2 + 1]= y == 0 ? 1 : 0;
-            if ( y < h ) walls[(y + 2) * per_line + x * 2]= x == 0 ? 1 : 0;
+            if ( x < w ) walls[(y + 2) * per_line + x * 2 + 1]= y == y2 ? (wall_length++, 1) : 0;
+            if ( y < h ) walls[(y + 2) * per_line + x * 2]= x == (y < y2 ? w : 0) ? (wall_length++, 1) : 0;
         }
     }
 
@@ -205,6 +233,7 @@ const gen_cells= function( w, h ) {
             walls[inx + ofsF]= 1;
             if ( walls[inx + ofsS1] == 0 ) walls[inx + ofsS1]= 1;
             if ( walls[inx + ofsS2] == 0 ) walls[inx + ofsS2]= 1;
+            wall_length += 2;
             return true;
         }
 
@@ -218,6 +247,7 @@ const gen_cells= function( w, h ) {
             walls[inx + ofsF]= 1;
             walls[inx + ofsS1]= 0;
             walls[inx + ofsS2]= 0;
+            wall_length -= 2;
             return true;
         }
 
@@ -267,11 +297,13 @@ const gen_cells= function( w, h ) {
             const dir= Math.floor(Math.random() * 2);
             if ( _change_wall(inx, dir) ) break;
         }
+
+        console.log("WALL_LENGTH", wall_length, min_wall_length);
     };
 
     //  Fuellungen entfernen
     //
-    const optimise_cells1= function( cells ) {
+    const optimise_cells_remove_fill= function( cells ) {
 
         const DIRS= [ [ 0, -1 ], [ 1, 0 ], [ 0, 1 ], [ -1, 0 ] ];
         let remove= [];
@@ -303,9 +335,7 @@ const gen_cells= function( w, h ) {
     //  Alle 4 Rotationen von   XX      .X
     //                          XO  =>  XO
     //
-    const optimise_cells2= function( cells ) {
-
-// return;
+    const optimise_cells_dead_spots= function( cells ) {
 
         const POS= [ [ 0, 0 ], [ 1, 0 ], [ 1, 1 ], [ 0, 1 ] ];
 
@@ -332,23 +362,82 @@ const gen_cells= function( w, h ) {
         }
     };
 
+    const optimise_cells_make_gaps= function( cells, gapsX, gapsY ) {
+
+        const DIRS= [ [ -1, 0 ], [ 1, 0 ], [ 0, -1 ], [ 0, 1 ] ];
+
+        const run= () => {
+            let done= true;
+            for ( let y= 0; y < h; y++ ) {
+                for ( let x= 0; x < w; x++ ) {
+                    let color= cells[y + 1][x + 1];
+                    if ( color <= 0 ) continue;
+
+                    let foundDir= -1;
+                    for ( let i= 0; i < 4; i++ ) {
+                        const x0= x + 1 + DIRS[i][0];
+                        const y0= y + 1 + DIRS[i][1];
+                        if ( cells[y0][x0] == color ) {
+                            if ( foundDir >= 0 ) {
+                                foundDir= -1;
+                                break;
+                            }
+                            foundDir= i;
+                        }
+                    }
+                    if ( foundDir >= 0 ) {
+                        done= false;
+                        if ( foundDir == 0 ) gapsY[x].push(y);
+                        if ( foundDir == 1 ) gapsY[x + 1].push(y);
+                        if ( foundDir == 2 ) gapsX[y].push(x);
+                        if ( foundDir == 3 ) gapsX[y + 1].push(x);
+                    }
+                }
+            }
+            return done;
+        };
+
+        let guard= 100;
+        while ( --guard ) {
+            if ( run() ) break;
+        }
+
+        const unique= (arr) => [...new Set(arr)].sort((a, b) => a - b)
+
+        for ( let x= 0; x < w + 1; x++ ) gapsX[x]= unique(gapsX[x])
+        for ( let y= 0; y < h + 1; y++ ) gapsY[y]= unique(gapsY[y])
+
+console.table(gapsY);
+    };
+
+
 //    _change_wall(30, 1);
 //    _change_wall(21, 1);
 //    _change_wall(25, 1);
 //    _change_wall(23, 1);
 
+    // console.log("min_wall_length", min_wall_length, w, h);
+
     for ( let i= 0; i < w * h * 2; i++ ) {
         randomise_wall();
+
+        if ( wall_length >= min_wall_length ) break;
     }
 
     if ( DEBUG ) show_walls(walls, w, h);
 
-    let cells= fill_walls(walls, w, h);
+    const cells= fill_walls(walls, w, h);
+    const gapsX= [];
+    const gapsY= [];
 
-    optimise_cells1(cells);
-    optimise_cells2(cells);
+    for ( let x= 0; x < w + 1; x++ ) gapsX.push([]);
+    for ( let y= 0; y < h + 1; y++ ) gapsY.push([]);
 
-    return cells;
+    optimise_cells_remove_fill(cells);
+    optimise_cells_dead_spots(cells);
+    optimise_cells_make_gaps(cells, gapsX, gapsY);
+
+    return [ cells, gapsX, gapsY ];
 };
 
 
@@ -441,12 +530,14 @@ const way_to_walls= function( way, w, h ) {
 
 // w und h sind Wege, nicht Zellen!
 const Puzzle= function( w, h ) {
-    var cells= gen_cells(w - 1, h - 1);
+
+    var [ cells, gapsX, gapsY ]= gen_cells_and_gaps(w - 1, h - 1);
+
     var outputCells;
 
     if ( DEBUG ) show_cells(cells, w, h, true);
 
-    this.getCells= function() {
+    this.getCells= () => {
         if ( !outputCells ) {
             outputCells= [];
             for ( let y= 0; y < h; y++ ) {
@@ -459,7 +550,10 @@ const Puzzle= function( w, h ) {
         return outputCells;
     };
 
-    this.checkWay= function( way ) {
+    this.getGapsX= () => gapsX;
+    this.getGapsY= () => gapsY;
+
+    this.checkWay= (way) => {
         const walls= way_to_walls(way, w - 1, h - 1);
 
 //        show_walls(walls, w - 1, h - 1);

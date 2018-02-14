@@ -24,8 +24,8 @@ const Panel= function() {
 
     const puzzle= new Puzzle(width, height);
     const cells= puzzle.getCells();
-    const gapsX= [];
-    const gapsY= [];    // @TODO: Draw!
+    const gapsX= puzzle.getGapsX();
+    const gapsY= puzzle.getGapsY();    // @TODO: Draw!
 
     const colors= [
         '#FFFFFF', // 0: weiss
@@ -378,9 +378,29 @@ const Panel= function() {
         svg.circle(lineWidth * 3).center(inX, inY).fill(lineColor);
         svg.line(outX, outY, outX1, outY1).stroke({ color: lineColor, width: lineWidth, linecap: 'round' });
 
-        // @TODO: gapsY
         for ( let x= 0; x < width; x++ ) {
-            svg.line(nodeX[x], nodeY[0], nodeX[x], nodeY[height - 1]).stroke({ color: lineColor, width: lineWidth });
+            let fromY= nodeY[0];
+            let toY= nodeY[width - 1];
+            if ( gapsY[x] ) {
+                for ( let i= 0; i < gapsY[x].length; i++ ) {
+                    toY= (nodeY[gapsY[x][i]] + nodeY[gapsY[x][i] + 1]) / 2 - gapWidth / 2;
+                    svg.line(nodeX[x], fromY, nodeX[x], toY).stroke({ color: lineColor, width: lineWidth });
+                    fromY= toY + gapWidth;
+                    toY= nodeY[width - 1];
+                }
+            }
+            svg.line(nodeX[x], fromY, nodeX[x], toY).stroke({ color: lineColor, width: lineWidth });
+
+            if ( x < width - 1 ) {
+                for ( let y= 0; y < height - 1; y++ ) {
+                    const color= cells[y][x];
+                    if ( color ) {
+                        svg.rect(lineWidth * 2, lineWidth * 2).radius(2)
+                            .center((nodeX[x] + nodeX[x + 1]) / 2, (nodeY[y] + nodeX[y + 1]) / 2)
+                            .fill(colors[color - 1]);
+                    }
+                }
+            }
         }
 
         for ( let y= 0; y < height; y++ ) {
