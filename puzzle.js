@@ -298,7 +298,7 @@ const gen_cells_and_gaps= function( w, h ) {
             if ( _change_wall(inx, dir) ) break;
         }
 
-        console.log("WALL_LENGTH", wall_length, min_wall_length);
+        // console.log("WALL_LENGTH", wall_length, min_wall_length);
     };
 
     //  Fuellungen entfernen
@@ -404,10 +404,31 @@ const gen_cells_and_gaps= function( w, h ) {
 
         const unique= (arr) => [...new Set(arr)].sort((a, b) => a - b)
 
-        for ( let x= 0; x < w + 1; x++ ) gapsX[x]= unique(gapsX[x])
-        for ( let y= 0; y < h + 1; y++ ) gapsY[y]= unique(gapsY[y])
+        for ( let y= 0; y < h + 1; y++ ) gapsX[y]= unique(gapsX[y])
 
-console.table(gapsY);
+
+        for ( let y= 0; y < h + 1; y++ ) {
+            gapsX[y]= unique(gapsX[y])
+            for ( let i= 0; i < gapsX[y].length; i++ ) {
+                const x0= gapsX[y][i] + 1;
+                const y0= Math.random() < .5 ? y : y + 1;
+                cells[y0][x0]= 0;
+                // console.log("GAPS", y0, x0);
+            }
+        }
+
+        for ( let x= 0; x < w + 1; x++ ) {
+            gapsY[x]= unique(gapsY[x])
+            for ( let i= 0; i < gapsY[x].length; i++ ) {
+                const x0= Math.random() < .5 ? x : x + 1;
+                const y0= gapsY[x][i] + 1;
+                cells[y0][x0]= 0;
+                // console.log("GAPS", y0, x0);
+            }
+        }
+
+// console.table(gapsX);
+// console.table(gapsY);
     };
 
 
